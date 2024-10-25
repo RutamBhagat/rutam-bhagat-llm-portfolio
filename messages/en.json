@@ -1,79 +1,74 @@
 {
     "person": {
-        "role": "Design Engineer"
+        "role": "LLM Engineer"
     },
     "newsletter": {
-        "title": "Subscribe to {firstName}'s Newsletter",
-        "description": "I occasionally write about design, technology, and share thoughts on the intersection of creativity and engineering",
+        "title": "Subscribe to Rutam's Newsletter",
+        "description": "I occasionally write about LLM's, technology, and share thoughts on the intersection of creativity and engineering.",
         "button": "Sign up"
     },
     "home": {
         "label": "Home",
-        "title": "{name}'s Portfolio",
-        "description": "Portfolio website showcasing my work as a {role}",
-        "headline": "Design engineer and builder",
-        "subline": "I'm Selene, a design engineer at FLY, where I craft intuitive user experiences. After hours, I build my own projects."
+        "title": "Rutam Bhagat's Portfolio",
+        "description": "Portfolio website showcasing my work as a LLM Engineer",
+        "headline": "AI-powered solutions and fullstack development",
+        "subline": "I'm Rutam, a developer focused on crafting efficient and scalable web applications. Outside of work, I explore new technologies and contribute to open-source projects."
     },
     "about": {
         "label": "About",
         "title": "About me",
-        "description": "Meet {name}, {role} from {location}",
+        "description": "Meet Rutam Bhagat, LLM Engineer from Asia/Kolkata",
         "intro": {
             "title": "Introduction",
-            "description": "Selene is a Jakarta-based design engineer with a passion for transforming complex challenges into simple, elegant design solutions. Her work spans digital interfaces, interactive experiences, and the convergence of design and technology."
+            "description": "Rutam is a developer interested in building AI-driven applications and scalable web solutions. His work spans fullstack development, interactive applications, and open-source contributions."
         },
         "work": {
             "title": "Work Experience",
             "experiences": {
-                "FLY": {
-                    "timeframe": "2022 - Present",
-                    "role": "Senior Design Engineer",
-                    "achievements": "Redesigned the UI/UX for the FLY platform, resulting in a 20% increase in user engagement and 30% faster load times.;Spearheaded the integration of AI tools into design workflows, enabling designers to iterate 50% faster."
-                },
-                "Creativ3": {
-                    "timeframe": "2018 - 2022",
-                    "role": "Lead Designer",
-                    "achievements": "Developed a design system that unified the brand across multiple platforms, improving design consistency by 40%.;Led a cross-functional team to launch a new product line, contributing to a 15% increase in overall company revenue."
+                "Nordstone": {
+                    "timeframe": "2023 - Present",
+                    "role": "Fullstack Developer",
+                    "achievements": "Developed a high-performance e-commerce platform, resulting in improved customer engagement and increased conversion rates.;Created an AI-powered chatbot using LangChain, enhancing user interaction."
                 }
             }
         },
         "studies": {
             "title": "Studies",
             "institutions": {
-                "University of Jakarta": {
+                "SKNCOE": {
                     "description": "Studied software engineering."
                 },
-                "Build the Future": {
-                    "description": "Studied online marketing and personal branding."
+                "Deeplearning.ai": {
+                    "description": "Studied AI, ML and LLM engineering."
                 }
             }
         },
         "technical": {
-            "title": "Technical skills",
+            "title": "Technical Skills",
             "skills": {
-                "Figma": {
-                    "description": "Able to prototype in Figma with Once UI with unnatural speed."
+                "LangChain": {
+                    "description": "Skilled in developing AI applications using LangChain and integrating various models."
                 },
-                "Nextjs": {
-                    "description": "Building next gen apps with Next.js + Once UI + Supabase."
+                "Next.js": {
+                    "description": "Building scalable applications with Next.js and integrating with various backend services."
                 }
             }
         }
     },
     "blog": {
         "label": "Blog",
-        "title": "Writing about design and tech...",
-        "description": "Read what {name} has been up to recently"
+        "title": "Writing about LLM's and tech...",
+        "description": "Read what Rutam has been up to recently."
     },
     "work": {
         "label": "Work",
         "title": "My projects",
-        "description": "Design and dev projects by {name}"
+        "description": "LLM and dev projects by Rutam."
     },
     "gallery": {
         "label": "Gallery",
         "title": "My photo gallery",
-        "description": "A photo collection by {name}"
+        "description": "A photo collection by Rutam."
     },
     "projectCard": {
         "label": "Read Case Study"
