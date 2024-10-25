@@ -1,6 +1,7 @@
 import { renderContent } from "@/app/resources";
 import { Flex, IconButton, SmartLink, Text } from "@/once-ui/components";
 import { useTranslations } from "next-intl";
+import { Key } from "react";
 // import { person, social } from '@/app/resources'
 
 export const Footer = () => {
@@ -28,13 +29,17 @@ export const Footer = () => {
         <Text variant="body-default-s" onBackground="neutral-strong"></Text>
         <Flex gap="16">
           {social.map(
-            (item) =>
+            (item: {
+              link: string | undefined;
+              name: Key | null | undefined;
+              icon: string | undefined;
+            }) =>
               item.link && (
                 <IconButton
                   key={item.name}
                   href={item.link}
                   icon={item.icon}
-                  tooltip={item.name}
+                  tooltip={item.name as string}
                   size="s"
                   variant="ghost"
                 />
