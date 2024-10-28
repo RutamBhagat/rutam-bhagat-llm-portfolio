@@ -39,8 +39,6 @@ Evaluates the RAG pipeline's performance on various metrics.
 
 ![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/ak833w4tr39038m3qmwj.png)
 
-
-
 ### **Document Loading and Indexing:**
 
 The ebook is parsed and converted into a list of Document objects.
@@ -86,10 +84,7 @@ Develop a side hustle, ensure the project will help you grow technically, collab
 
 Here, a `query_engine` is obtained from the `VectorStoreIndex`, allowing querying the index using natural language. The `query` method is called with a question, and the generated response is printed. This demonstrates a basic RAG pipeline, where relevant information is retrieved from the index and used to generate a final answer using the language model.
 
-
 ![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/lqfwde5adbgd5zpv9ysr.png)
-
-
 
 ### **Evaluation Setup with TruLens:**
 
@@ -117,17 +112,13 @@ with tru_recorder as recording:
 
 First, a list of evaluation questions is loaded from a file `eval_questions.txt`. Then, the `Tru` object from TruLens is initialized, and the database is reset. A pre-built TruLens recorder is obtained for the `query_engine` (the basic RAG pipeline) with a specific app ID. Finally, within the recorder context, each evaluation question is queried through the `query_engine`, and TruLens records the performance metrics in the background.
 
-
 ![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/q0vcfmatxgso7xcynslk.png)
-
 
 ### **Advanced RAG Pipelines:**
 
 ### **Sentence Window Retrieval:**
 
-
 ![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/fu15sc1297n0gjfuor8u.png)
-
 
 A SentenceWindowIndex is built, focusing on retrieving relevant sentences instead of entire documents.
 
@@ -179,18 +170,13 @@ for question in eval_questions:
 tru.get_leaderboard(app_ids=[])
 ```
 
-
 ![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/amq4uw8vpmd102drf3hd.png)
-
 
 This code resets the TruLens database, creates a new TruLens recorder for the `sentence_window_engine`, and runs each evaluation question through the engine while recording the performance metrics. Finally, the `get_leaderboard` function displays the performance metrics for this pipeline.
 
 ### **Auto-merging Retrieval:**
 
-
 ![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/r9nlyqmjr1haqqb2ahox.png)
-
-
 
 An AutoMergingIndex is created, automatically merging similar nodes in the index for better retrieval.
 
@@ -241,9 +227,7 @@ tru.get_leaderboard(app_ids=[])
 
 The database is reset, a new TruLens recorder is created for the `automerging_query_engine`, and each evaluation question is queried while recording performance metrics. Finally, the leaderboard is displayed, showing the performance of this pipeline compared to others.
 
-
 ![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/39rw3sapw1i2r016ehsk.png)
-
 
 ### **Performance Comparison:**
 
@@ -263,7 +247,7 @@ This launches the TruLens dashboard, which provides a user interface to interact
 Starting dashboard ...
 Config file already exists. Skipping writing process.
 Credentials file already exists. Skipping writing process.
-Dashboard already running at path: https://s172-31-14-245p18021.lab-aws-production.deeplearning.ai/
+Dashboard already running at path: https://s172-31-14-245p18021.lab-aws-production.Deeplearning AI/
 ```
 
 If the dashboard is already running, it will provide the URL where the dashboard is hosted.

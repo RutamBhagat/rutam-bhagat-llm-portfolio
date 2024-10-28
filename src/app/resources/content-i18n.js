@@ -146,7 +146,7 @@ const about = {
         description: <>Studied software engineering.</>,
       },
       {
-        name: "Deeplearning.ai",
+        name: "Deeplearning AI",
         description: <>Studied AI, ML and LLM engineering.</>,
       },
     ],
@@ -179,10 +179,10 @@ const about = {
         ],
       },
       {
-        title: "Next.js",
+        title: "Next js",
         description: (
           <>
-            Building scalable applications with Next.js and integrating with
+            Building scalable applications with Next js and integrating with
             various backend services.
           </>
         ),

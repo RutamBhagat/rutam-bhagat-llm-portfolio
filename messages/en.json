@@ -38,7 +38,7 @@
                 "SKNCOE": {
                     "description": "Studied software engineering."
                 },
-                "Deeplearning.ai": {
+                "Deeplearning AI": {
                     "description": "Studied AI, ML and LLM engineering."
                 }
             }
@@ -49,7 +49,7 @@
                 "LangChain": {
                     "description": "Skilled in developing AI applications using LangChain and integrating various models."
                 },
-                "Next.js": {
+                "Next js": {
                     "description": "Building scalable applications with Next.js and integrating with various backend services."
                 }
             }

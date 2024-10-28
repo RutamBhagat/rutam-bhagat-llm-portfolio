@@ -12,7 +12,7 @@ const withNextIntl = createNextIntlPlugin();
 const nextConfig = {
   pageExtensions: ["ts", "tsx", "md", "mdx"],
   images: {
-    domains: ["dev-to-uploads.s3.amazonaws.com"], // Allow specific external domains for images
+    domains: ["dev-to-uploads.s3.amazonaws.com", "github.com"], // Allow specific external domains for images
   },
 };
 
