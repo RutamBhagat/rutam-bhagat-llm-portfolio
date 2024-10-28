@@ -5,6 +5,7 @@ import { SmartImage, SmartLink, Text, Flex } from "@/once-ui/components";
 import { HeadingLink } from "@/components";
 import { TextProps } from "@/once-ui/interfaces";
 import { SmartImageProps } from "@/once-ui/components/SmartImage";
+import rehypePrettyCode from "rehype-pretty-code";
 
 type TableProps = {
   data: {
@@ -138,9 +139,15 @@ function createParagraph({ children }: TextProps) {
 function CodeBlock({
   children,
   className,
+  raw,
+  highlights,
+  meta,
 }: {
   children: ReactNode;
   className?: string;
+  raw?: string;
+  highlights?: number[];
+  meta?: string;
 }) {
   const language = className?.replace("language-", "") || "";
 
@@ -153,22 +160,27 @@ function CodeBlock({
         position: "relative",
         margin: "var(--static-space-16) 0",
         padding: "var(--static-space-16)",
-        backgroundColor: "var(--color-background-neutral-strong)",
+        backgroundColor: "var(--color-vscode-bg, #1e1e1e)", // VSCode-like background
         borderRadius: "var(--border-radius-m)",
         overflow: "auto",
-        // Add smooth scrolling
         scrollBehavior: "smooth",
-        // Add scroll shadows for better UX
-        backgroundImage: `
-                    linear-gradient(to right, var(--color-background-neutral-strong) 30%, rgba(255, 255, 255, 0)),
-                    linear-gradient(to right, rgba(255, 255, 255, 0), var(--color-background-neutral-strong) 70%)
-                `,
-        backgroundSize: "40px 100%, 40px 100%",
-        backgroundPosition: "left center, right center",
-        backgroundRepeat: "no-repeat",
-        backgroundAttachment: "local, local",
       }}
     >
+      {/* Optional: Add language label */}
+      {language && (
+        <Text
+          variant="body-default-xs"
+          style={{
+            position: "absolute",
+            right: "var(--static-space-8)",
+            top: "var(--static-space-8)",
+            color: "var(--color-text-neutral-weak)",
+            textTransform: "uppercase",
+          }}
+        >
+          {language}
+        </Text>
+      )}
       <Text
         as="code"
         variant="body-default-m"
@@ -179,9 +191,7 @@ function CodeBlock({
           overflowX: "auto",
           tabSize: 2,
           fontFamily: "var(--font-family-mono)",
-          // Improve readability
           lineHeight: "1.6",
-          // Add some spacing between lines
           padding: "0.5em 0",
         }}
         data-language={language}
@@ -192,7 +202,7 @@ function CodeBlock({
   );
 }
 
-// For InlineCode component:
+// For InlineCode component - enhanced with better styling
 function InlineCode({ children }: { children: ReactNode }) {
   return (
     <Text
@@ -200,9 +210,10 @@ function InlineCode({ children }: { children: ReactNode }) {
       variant="body-default-s"
       style={{
         padding: "0.2em 0.4em",
-        backgroundColor: "var(--color-background-neutral-strong)",
+        backgroundColor: "var(--color-vscode-bg, #1e1e1e)",
+        color: "var(--color-text-code, #d4d4d4)",
         borderRadius: "var(--border-radius-s)",
-        fontFamily: "var(--font-family-mono)", // Add monospace font
+        fontFamily: "var(--font-family-mono)",
       }}
     >
       {children}
@@ -210,7 +221,6 @@ function InlineCode({ children }: { children: ReactNode }) {
   );
 }
 
-// Update your existing components object to include the new code components
 const components = {
   p: createParagraph as any,
   h1: createHeading(1) as any,
@@ -222,10 +232,24 @@ const components = {
   img: createImage as any,
   a: CustomLink as any,
   Table,
-
-  // Add these new mappings
   pre: CodeBlock as any,
   code: InlineCode as any,
+};
+
+// Configure rehype-pretty-code options
+const rehypePrettyCodeOptions = {
+  theme: "github-dark", // You can change this to any theme you prefer
+  onVisitLine(node: any) {
+    // Prevent lines from collapsing in `display: grid` mode, and
+    // allow empty lines to be copy/pasted
+    if (node.children.length === 0) {
+      node.children = [{ type: "text", value: " " }];
+    }
+  },
+  onVisitHighlightedLine(node: any) {
+    // Add a highlighted line class
+    node.properties.className = ["highlighted"];
+  },
 };
 
 type CustomMDXProps = MDXRemoteProps & {
@@ -236,6 +260,12 @@ export function CustomMDX(props: CustomMDXProps) {
   return (
     <MDXRemote
       {...props}
+      options={{
+        mdxOptions: {
+          rehypePlugins: [[rehypePrettyCode, rehypePrettyCodeOptions]],
+        },
+        ...props.options,
+      }}
       components={{ ...components, ...(props.components || {}) }}
     />
   );

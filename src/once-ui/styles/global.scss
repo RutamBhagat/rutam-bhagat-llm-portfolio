@@ -1,82 +1,135 @@
 /* BOX-SIZING */
 * {
-    box-sizing: border-box;
+  box-sizing: border-box;
 }
 
 ul {
-    margin: 0;
-    padding: 0 0 0 var(--static-space-40);
-    line-height: inherit;
+  margin: 0;
+  padding: 0 0 0 var(--static-space-40);
+  line-height: inherit;
 }
 
 li {
-    padding: var(--static-space-8) 0;
-    line-height: 150%;
-    font-size: inherit;
-    color: inherit;
+  padding: var(--static-space-8) 0;
+  line-height: 150%;
+  font-size: inherit;
+  color: inherit;
 
-    &::marker {
-        color: var(--brand-on-background-weak);
-    }
+  &::marker {
+    color: var(--brand-on-background-weak);
+  }
 }
 
 blockquote {
-    display: flex;
-    margin: var(--static-space-16) 0;
-    border-radius: var(--radius-m);
-    background: var(--brand-alpha-weak);
-    overflow: hidden;
-    text-wrap: balance;
-    backdrop-filter: blur(var(--static-space-2));
-    border: 1px dashed var(--brand-alpha-medium);
+  display: flex;
+  margin: var(--static-space-16) 0;
+  border-radius: var(--radius-m);
+  background: var(--brand-alpha-weak);
+  overflow: hidden;
+  text-wrap: balance;
+  backdrop-filter: blur(var(--static-space-2));
+  border: 1px dashed var(--brand-alpha-medium);
 
-    span {
-        margin: 0 !important;
-        padding: var(--static-space-16) var(--static-space-24);
-        color: var(--brand-on-background-medium) !important;
-    }
+  span {
+    margin: 0 !important;
+    padding: var(--static-space-16) var(--static-space-24);
+    color: var(--brand-on-background-medium) !important;
+  }
 }
 
 img {
-    user-select: none;
+  user-select: none;
 }
 
 /* SELECTION */
 ::selection {
-    background: var(--neutral-on-background-medium);
-    color: var(--neutral-background-strong);
+  background: var(--neutral-on-background-medium);
+  color: var(--neutral-background-strong);
 }
 
 /* LINK */
 a {
-    color: var(--brand-on-background-medium);
-    text-decoration: none;
-    text-decoration-thickness: 1px;
-    text-underline-offset: 0.25em;
-    text-decoration-color: var(--neutral-border-strong) !important;
+  color: var(--brand-on-background-medium);
+  text-decoration: none;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.25em;
+  text-decoration-color: var(--neutral-border-strong) !important;
 
-    &:hover {
-        text-decoration-line: underline;
-    }
+  &:hover {
+    text-decoration-line: underline;
+  }
 }
 
 /* SCROLLBAR */
 ::-webkit-scrollbar {
-    background: var(--static-transparent);
-    width: var(--static-space-8);
-    height: var(--static-space-8);
+  background: var(--static-transparent);
+  width: var(--static-space-8);
+  height: var(--static-space-8);
 }
 
 ::-webkit-scrollbar-track {
-    background: var(--static-transparent);
+  background: var(--static-transparent);
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--neutral-alpha-medium);
-    border-radius: var(--radius-999);
-    transition: var(--transition-property) var(--transition-duration-micro-medium) var(--transition-timing-function);
+  background: var(--neutral-alpha-medium);
+  border-radius: var(--radius-999);
+  transition: var(--transition-property) var(--transition-duration-micro-medium)
+    var(--transition-timing-function);
 
-    &:hover {
-        background: var(--neutral-alpha-strong);
-    }
+  &:hover {
+    background: var(--neutral-alpha-strong);
+  }
+}
+
+/* Add these CSS variables to your global styles or CSS module */
+:root {
+  --color-vscode-bg: #1e1e1e;
+  --color-text-code: #d4d4d4;
+  --color-code-highlight: rgba(255, 255, 255, 0.1);
+
+  /* Syntax highlighting variables */
+  --token-keyword: #569cd6;
+  --token-string: #ce9178;
+  --token-comment: #6a9955;
+  --token-function: #dcdcaa;
+  --token-number: #b5cea8;
+  --token-constant: #4fc1ff;
+  --token-class: #4ec9b0;
+  --token-property: #9cdcfe;
+}
+
+pre [data-line] {
+  border-left: 2px solid transparent;
+  padding: 0 var(--static-space-16);
+}
+
+pre [data-line].highlighted {
+  background-color: var(--color-code-highlight);
+  border-left: 2px solid #568af2;
+}
+
+code .token.keyword {
+  color: var(--token-keyword);
+}
+code .token.string {
+  color: var(--token-string);
+}
+code .token.comment {
+  color: var(--token-comment);
+}
+code .token.function {
+  color: var(--token-function);
+}
+code .token.number {
+  color: var(--token-number);
+}
+code .token.constant {
+  color: var(--token-constant);
+}
+code .token.class-name {
+  color: var(--token-class);
+}
+code .token.property {
+  color: var(--token-property);
 }
