@@ -1,0 +1,284 @@
+---
+title: "LangChain: LLM App Evaluation"
+publishedAt: "10/05/2024, 12:49 am"
+---
+
+![LangChain: LLM App Evaluation](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/kuybkp0323o09whpix8w.jpg)
+
+As language models (LLMs) continue to advance, their applications are becoming increasingly complex and sophisticated. However, with this complexity comes the challenge of evaluating the performance and accuracy of these LLM-based applications. In this blog post, we'll dive into the world of LLM application evaluation, exploring frameworks and tools that can help you assess and improve your models' performance.
+
+# **Create our Q & A application**
+
+```python
+import os
+from dotenv import load_dotenv, find_dotenv
+from langchain.chains.retrieval_qa.base import RetrievalQA
+from langchain.indexes import VectorstoreIndexCreator
+from langchain.vectorstores.docarray import DocArrayInMemorySearch
+from langchain_community.document_loaders.csv_loader import CSVLoader
+from langchain_openai import ChatOpenAI
+
+_ = load_dotenv(find_dotenv())
+notebook_path = os.path.abspath("__file__")
+notebook_directory = os.path.dirname(notebook_path)
+csv_file_path = os.path.join(notebook_directory, '..', 'OutdoorClothingCatalog_1000.csv')
+loader = CSVLoader(file_path=csv_file_path)
+data = loader.load()
+index = VectorstoreIndexCreator(vectorstore_cls=DocArrayInMemorySearch).from_loaders(
+    [loader]
+)
+llm_model = "gpt-3.5-turbo"
+llm = ChatOpenAI(temperature=0.0, model=llm_model)
+qa = RetrievalQA.from_chain_type(
+    llm=llm,
+    chain_type="stuff",
+    retriever=index.vectorstore.as_retriever(),
+    verbose=True,
+    chain_type_kwargs={"document_separator": "<<<<>>>>>"},
+)
+```
+
+## Generating Test Data
+
+Before we can evaluate an LLM application, we need a solid set of test data. There are two primary approaches to generating test data:
+
+### 1.1 Manually Creating Examples
+
+The traditional method involves manually reviewing your data and crafting query-answer pairs. Let's say you're working with a clothing catalog dataset. You could browse through the descriptions and create questions like "Does the Cozy Comfort Pullover Set have side pockets?" and provide the corresponding answer.
+
+While this approach gives you complete control over the examples, it can be time-consuming and may not scale well for larger datasets.
+
+```python
+# Hard-coded examples
+examples = [
+    {
+        "query": "Do the Cozy Comfort Pullover Set \
+        have side pockets?",
+        "answer": "Yes",
+    },
+    {
+        "query": "What collection is the Ultra-Lofty \
+        850 Stretch Down Hooded Jacket from?",
+        "answer": "The DownTek collection",
+    },
+]
+```
+
+### 1.2 Using LLMs to Generate Examples
+
+Interestingly, you can use LLMs themselves to generate test data. LangChain provides the `QAGenerateChain` that can automatically generate query-answer pairs from your documents. Its an AI assistant that can create hypothetical questions and answers based on your data
+
+```python
+from langchain.evaluation.qa import QAGenerateChain
+from pprint import pprint
+example_gen_chain = QAGenerateChain.from_llm(ChatOpenAI(model=llm_model))
+new_examples = example_gen_chain.batch([{"doc": t} for t in data[:5]])
+pprint(new_examples[0]["qa_pairs"])
+# Output
+# {'answer': "The approximate weight of the Women's Campside Oxfords per pair is "
+#            '1 lb. 1 oz.',
+#  'query': "What is the approximate weight of the Women's Campside Oxfords per "
+#           'pair?'}
+
+data[0]
+# Document(page_content=": 0\nname: Women's Campside Oxfords\ndescription: This ultracomfortable lace-to-toe Oxford boasts a super-soft canvas, thick cushioning, and quality construction for a broken-in feel from the first time you put them on. \n\nSize & Fit: Order regular shoe size. For half sizes not offered, order up to next whole size. \n\nSpecs: Approx. weight: 1 lb.1 oz. per pair. \n\nConstruction: Soft canvas material for a broken-in feel and look. Comfortable EVA innersole with Cleansport NXT® antimicrobial odor control. Vintage hunt, fish and camping motif on innersole. Moderate arch contour of innersole. EVA foam midsole for cushioning and support. Chain-tread-inspired molded rubber outsole with modified chain-tread pattern. Imported. \n\nQuestions? Please contact us for any inquiries.", 
+#         metadata={'source': '/home/voldemort/Downloads/Code/Langchain_Harrison_Chase/Course_1/OutdoorClothingCatalog_1000.csv', 'row': 0})
+```
+
+By combining manually crafted examples with LLM-generated ones, you can quickly build a robust test dataset.
+
+```python
+examples.extend([inst["qa_pairs"] for inst in new_examples])
+```
+
+## Manual Evaluation and Debugging
+
+With your test data in hand, it's time to evaluate your LLM application's performance. The simplest approach is to run examples through the application and inspect the final output.
+
+```python
+qa.invoke(examples[-1]["query"])
+# Output
+# Entering new RetrievalQA chain...
+# Finished chain.
+# {'query': 'What technology is used in the EcoFlex 3L Storm Pants to make them more breathable and keep the wearer dry and comfortable?',
+#  'result': 'The EcoFlex 3L Storm Pants use TEK O2 technology to make them more breathable and keep the wearer dry and comfortable.'}
+```
+
+However, this method can be limiting, as it doesn't provide insight into the intermediate steps or potential issues within the application's pipeline.
+
+### 2.1 Running Examples Through the Application
+
+To gain a deeper understanding of your application's behavior, LangChain offers the `langchain.debug` utility. When enabled, this utility prints out detailed information at each step of the application's execution, including prompts, contexts, and intermediate results.
+
+```python
+import langchain
+langchain.debug = True
+qa.invoke(examples[0]["query"])
+```
+
+By inspecting this output, you can identify potential issues in the retrieval or prompting steps, allowing you to pinpoint and address problems more effectively.
+
+```plaintext
+"""
+Output:
+
+> Entering new RetrievalQA chain...
+> Entering Chain run with input:
+{
+  "query": "Do the Cozy Comfort Pullover Set have side pockets?"
+}
+> Entering StuffDocumentsChain run with input:
+[inputs]
+> Entering LLMChain run with input:
+{
+  "question": "Do the Cozy Comfort Pullover Set have side pockets?",
+  "context": ": 73\nname: Cozy Cuddles Knit Pullover Set\n...
+}
+[llm/start] Entering LLM run with input:
+{
+  "prompts": [
+    "System: Use the following pieces of context to answer the user's question. \nIf you don't know the answer, just say that you don't know, don't try to make up an answer.\n----------------\n: 73\nname: Cozy Cuddles Knit Pullover Set\n...
+Human: Do the Cozy Comfort Pullover Set have side pockets?"
+  ]
+}
+[llm/end] [1.89s] Exiting LLM run with output:
+{
+  "generations": [
+    [
+      {
+        "text": "Yes, the Cozy Comfort Pullover Set does have side pockets.",
+        ...
+      }
+    ]
+  ],
+  "llm_output": {
+    "token_usage": {
+      "completion_tokens": 14,
+      "prompt_tokens": 733,
+      "total_tokens": 747
+    },
+    "model_name": "gpt-3.5-turbo",
+    "system_fingerprint": "fp_3b956da36b"
+  },
+  "run": null
+}
+[chain/end] [1.89s] Exiting Chain run with output:
+{
+  "text": "Yes, the Cozy Comfort Pullover Set does have side pockets."
+}
+[chain/end] [1.89s] Exiting Chain run with output:
+{
+  "output_text": "Yes, the Cozy Comfort Pullover Set does have side pockets."
+}
+[chain/end] [2.36s] Exiting Chain run with output:
+{
+  "result": "Yes, the Cozy Comfort Pullover Set does have side pockets."
+}
+"""
+
+# Final Output:
+# {'query': 'Do the Cozy Comfort Pullover Set        have side pockets?',
+#  'result': 'Yes, the Cozy Comfort Pullover Set does have side pockets.'}
+```
+
+## LLM-Assisted Evaluation
+
+While manual evaluation is valuable, it can quickly become tedious and subjective, especially as the number of examples grows. This is where LLM-assisted evaluation comes into play.
+
+### 3.1 Getting Predictions for Examples
+
+The first step is to run your examples through the LLM application and collect the predictions.
+
+```python
+predictions = qa.batch(inputs=examples)
+```
+
+### 3.2 Using QAEvalChain for Grading
+
+LangChain provides the `QAEvalChain`, an LLM-based chain designed to evaluate the correctness of your application's predictions. This chain uses the LLMs ability to understand semantic similarity, ensuring that predictions are graded accurately, even if they don't exactly match the expected answer.
+
+```python
+from langchain.evaluation import QAEvalChain
+llm_model = "gpt-3.5-turbo"
+llm = ChatOpenAI(temperature=0.0, model=llm_model)
+eval_chain = QAEvalChain.from_llm(llm)
+graded_outputs = eval_chain.evaluate(examples, predictions)
+```
+
+With the graded outputs, you can quickly identify areas for improvement and iterate on your LLM application.
+
+```python
+for i, eg in enumerate(examples):
+    print(f"Example {i}:")
+    print("Question: " + predictions[i]["query"])
+    print("Real Answer: " + predictions[i]["answer"])
+    print("Predicted Answer: " + predictions[i]["result"])
+    print("Predicted Grade: " + graded_outputs[i]["results"])
+    print()
+```
+
+This will output something like:
+
+```plaintext
+Example 0:
+Question: Do the Cozy Comfort Pullover Set have side pockets?
+Real Answer: Yes
+Predicted Answer: Yes, the Cozy Comfort Pullover Set does have side pockets.
+Predicted Grade: CORRECT
+
+Example 1:
+Question: What collection is the Ultra-Lofty 850 Stretch Down Hooded Jacket from?
+Real Answer: The DownTek collection
+Predicted Answer: The Ultra-Lofty 850 Stretch Down Hooded Jacket is from the DownTek collection.
+Predicted Grade: CORRECT
+
+Example 2:
+Question: What is the approximate weight of the Women's Campside Oxfords per pair?
+Real Answer: The approximate weight of the Women's Campside Oxfords per pair is 1 lb. 1 oz.
+Predicted Answer: The approximate weight of the Women's Campside Oxfords per pair is 1 lb. 1 oz.
+Predicted Grade: CORRECT
+
+Example 3:
+Question: What are the dimensions of the small and medium sizes of the Recycled Waterhog Dog Mat, Chevron Weave?
+Real Answer: The small size of the Recycled Waterhog Dog Mat, Chevron Weave has dimensions of 18" x 28", while the medium size has dimensions of 22.5" x 34.5".
+Predicted Answer: The dimensions of the small size of the Recycled Waterhog Dog Mat, Chevron Weave are 18" x 28", and the dimensions of the medium size are 22.5" x 34.5".
+Predicted Grade: CORRECT
+
+Example 4:
+Question: What are some key features of the Infant and Toddler Girls' Coastal Chill Swimsuit, Two-Piece as described in the document?
+Real Answer: Some key features of the swimsuit include bright colors, ruffles, exclusive whimsical prints, four-way-stretch and chlorine-resistant fabric, UPF 50+ rated fabric for sun protection, crossover no-slip straps, fully lined bottom, secure fit, and maximum coverage.
+Predicted Answer: Some key features of the Infant and Toddler Girls' Coastal Chill Swimsuit, Two-Piece are:
+- Bright colors, ruffles, and exclusive whimsical prints
+- Four-way-stretch and chlorine-resistant fabric
+- UPF 50+ rated fabric for high sun protection
+- Crossover no-slip straps and fully lined bottom for a secure fit and coverage
+- Machine washable and line dry for best results
+Predicted Grade: CORRECT
+
+Example 5:
+Question: What is the fabric composition of the Refresh Swimwear, V-Neck Tankini Contrasts?
+Real Answer: The body of the tankini top is made of 82% recycled nylon and 18% Lycra® spandex, while the lining is made of 90% recycled nylon and 10% Lycra® spandex.
+Predicted Answer: The fabric composition of the Refresh Swimwear, V-Neck Tankini Contrasts is as follows:
+- Body: 82% recycled nylon, 18% Lycra® spandex
+- Lining: 90% recycled nylon, 10% Lycra® spandex
+Predicted Grade: CORRECT
+
+Example 6:
+Question: What technology is featured in the EcoFlex 3L Storm Pants that makes them more breathable?
+Real Answer: The EcoFlex 3L Storm Pants feature TEK O2 technology, which offers the most breathability ever tested.
+Predicted Answer: The EcoFlex 3L Storm Pants feature TEK O2 technology, which is a state-of-the-art air-permeable technology that offers the most breathability tested by the brand.
+Predicted Grade: CORRECT
+```
+
+```python
+graded_outputs[-1]
+# {'results': 'CORRECT'}
+```
+
+## Conclusion
+
+Evaluating LLM applications is a critical step in ensuring their reliability and performance. By leveraging tools like LangChain's `QAGenerateChain`, `langchain.debug`, `QAEvalChain`, and the LangChain Evaluation Platform, you can streamline the evaluation process, gain deeper insights into your application's behavior, and iterate more efficiently. Whether you're a seasoned machine learning professional or just starting your journey, these frameworks and tools can help you unlock the full potential of LLM-based applications.
+
+# Source Code
+
+[https://github.com/RutamBhagat/LangChainHCCourse1/blob/main/course\_1/evaluation.ipynb](https://github.com/RutamBhagat/LangChainHCCourse1/blob/main/course_1/evaluation.ipynb)

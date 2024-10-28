@@ -1,0 +1,286 @@
+---
+title: "Langchain Retrieval"
+publishedAt: "17/05/2024, 09:37 pm"
+---
+
+![Langchain Retrieval](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/fbnz41s4swihyq6oofp7.jpg)
+
+In the previous blog, we covered the basics of semantic search and saw how it worked well for many use cases. However, we also encountered some edge cases where things could go a little wrong. This blog post will dive deep into retrieval and cover more advanced methods for overcoming those edge cases.
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/wkuffr6eflx70as08gjg.png)
+
+
+
+## Maximum Marginal Relevance (MMR)
+
+One of the first advanced retrieval techniques we'll explore is Maximum Marginal Relevance (MMR). The idea behind MMR is that if you always take the documents that are most similar to the query in the embedding space, you may miss out on diverse information, as we saw in one of the edge cases.
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/ptb4wf65tdbjr3qrx0qp.png)
+
+
+
+Consider the example of a chef asking about all-white mushrooms. If we look at the most similar results based on semantic similarity, we might get information about fruiting bodies and white mushrooms, but miss the crucial detail that some varieties are highly poisonous.
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/msw5fisu1ngy411kjkum.png)
+
+
+
+MMR addresses this issue by selecting a diverse set of documents. Here's how it works:
+
+1. We send a query and initially get back a set of responses based solely on semantic similarity, controlled by the `fetch_k` parameter.
+    
+2. From that initial set, we then optimize for both relevance (based on semantic similarity) and diversity.
+    
+3. Finally, we choose the final `k` documents to return to the user, balancing relevance and diversity.
+    
+
+Let's see an example:
+
+```python
+from dotenv import load_dotenv, find_dotenv
+from langchain_community.vectorstores.chroma import Chroma
+from langchain_openai import OpenAIEmbeddings
+
+persist_directory = "docs/chroma/"
+_ = load_dotenv(find_dotenv())
+embedding = OpenAIEmbeddings()
+vectordb = Chroma(persist_directory=persist_directory, embedding_function=embedding)
+print(vectordb._collection.count()) # 209
+texts = [
+    """The Amanita phalloides has a large and imposing epigeous (aboveground) fruiting body (basidiocarp).""",
+    """A mushroom with a large fruiting body is the Amanita phalloides. Some varieties are all-white.""",
+    """A. phalloides, a.k.a Death Cap, is one of the most poisonous of all known mushrooms.""",
+]
+smalldb = Chroma.from_texts(texts, embedding=embedding)
+question = "Tell me about all-white mushrooms with large fruiting bodies"
+# Similarity search (without MMR)
+smalldb.similarity_search(question, k=2)
+# [Document(page_content='A mushroom with a large fruiting body is the Amanita phalloides. Some varieties are all-white.'),
+#  Document(page_content='The Amanita phalloides has a large and imposing epigeous (aboveground) fruiting body (basidiocarp).')]
+```
+
+This returns the first two documents, which contain information about the fruiting body and white color but miss the crucial detail about the mushroom's poisonous nature.
+
+```python
+# With MMR
+smalldb.max_marginal_relevance_search(question, k=2, fetch_k=3)
+# [Document(page_content='A mushroom with a large fruiting body is the Amanita phalloides. Some varieties are all-white.'),
+#  Document(page_content='A. phalloides, a.k.a Death Cap, is one of the most poisonous of all known mushrooms.')]
+```
+
+By using MMR, we now get the information that the mushroom is poisonous, along with the relevant details about its appearance.
+
+## Self-Query Retriever
+
+Another advanced retrieval technique is the Self-Query Retriever. This is useful when you receive questions that refer not only to the content you want to look up semantically but also to some metadata associated with that content.
+
+For example, consider the question: "What are some movies about aliens made in 1980?" This question has two components:
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/iylob63a54dvx6vakir0.png)
+
+
+    
+    The semantic part: "aliens" (which we want to look up in our movie database)
+    
+2. The metadata part: "made in 1980" (which refers to the release year of the movies)
+    
+
+The Self-Query Retriever uses a language model to split the original question into a search term and a metadata filter. Most vector stores support metadata filters, allowing you to filter records based on specific metadata fields, like the release year.
+
+Here's how we can set up a Self-Query Retriever:
+
+```python
+from langchain_openai import OpenAI
+from langchain.retrievers import SelfQueryRetriever
+from langchain.chains.query_constructor.schema import AttributeInfo
+
+metadata_field_info = [
+    AttributeInfo(
+        name="source",
+        description="""The lecture the chunk is from, should be one of \
+            `docs/cs229_lectures/MachineLearning-Lecture01.pdf`, \
+            `docs/cs229_lectures/MachineLearning-Lecture02.pdf`, or \
+            `docs/cs229_lectures/MachineLearning-Lecture03.pdf`""",
+        type="string",
+    ),
+    AttributeInfo(
+        name="page",
+        description="The page from the lecture",
+        type="integer",
+    ),
+]
+document_content_description = "Lecture notes"
+llm = OpenAI(model="gpt-3.5-turbo-instruct", temperature=0)
+retriever = SelfQueryRetriever.from_llm(
+    llm, vectordb, document_content_description, metadata_field_info, verbose=True
+)
+```
+
+Now, when we pass a question like "What did they say about regression in the third lecture?", the Self-Query Retriever will infer that we want to search for "regression" and filter the results to only include documents with the "source" metadata field matching the path to the third lecture.
+
+```python
+question = "what did they say about regression in the third lecture?"
+docs = retriever.invoke(question)
+for d in docs:
+    print(d.metadata)
+# {'page': 14, 'source': 'docs/cs229_lectures/MachineLearning-Lecture03.pdf'}
+# {'page': 10, 'source': 'docs/cs229_lectures/MachineLearning-Lecture03.pdf'}
+# {'page': 0, 'source': 'docs/cs229_lectures/MachineLearning-Lecture03.pdf'}
+# {'page': 10, 'source': 'docs/cs229_lectures/MachineLearning-Lecture03.pdf'}
+```
+
+As you can see, all the retrieved documents are from the third lecture, thanks to the inferred metadata filter.
+
+## Contextual Compression
+
+Another useful retrieval technique is contextual compression. This can help extract only the most relevant segments from the retrieved passages, rather than returning the entire document, which may contain irrelevant information.
+
+For example, when asking a question, you might get back an entire document, even though only the first one or two sentences are relevant. Contextual compression allows you to run all the retrieved documents through a language model, extract the most relevant segments, and then pass only those segments into the final language model call for generating the answer.
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/zeby434n24mx5k2c3y6a.png)
+
+
+Here's how we can set up a contextual compression retriever:
+
+```python
+from langchain.retrievers import ContextualCompressionRetriever
+from langchain.retrievers.document_compressors import LLMChainExtractor
+
+# Helper function for printing docs
+def pretty_print_docs(docs):
+    print(
+        f"\n{'-' * 100}\n".join(
+            [f"Document {i+1}:\n\n" + d.page_content for i, d in enumerate(docs)]
+        )
+    )
+
+# Create a compressor and the retriever
+llm = OpenAI(temperature=0, model="gpt-3.5-turbo-instruct")
+compressor = LLMChainExtractor.from_llm(llm)
+compression_retriever = ContextualCompressionRetriever(
+    base_compressor=compressor, base_retriever=vectordb.as_retriever(search_type="mmr")
+)
+```
+
+We can then use this retriever to get compressed, relevant segments for a given query:
+
+```python
+question = "what did they say about matlab?"
+compressed_docs = compression_retriever.invoke(question)
+pretty_print_docs(compressed_docs)
+```
+
+```plaintext
+Document 1:
+
+- "those homeworks will be done in either MATLA B or in Octave"
+- "I know some people call it a free ve rsion of MATLAB"
+- "MATLAB is I guess part of the programming language that makes it very easy to write codes using matrices, to write code for numerical routines, to move data around, to plot data."
+- "there's also a software package called Octave that you can download for free off the Internet."
+- "it has somewhat fewer features than MATLAB, but it's free, and for the purposes of this class, it will work for just about everything."
+- "once a colleague of mine at a different university, not at Stanford, actually teaches another machine learning course."
+----------------------------------------------------------------------------------------------------
+Document 2:
+
+"Oh, it was the MATLAB."
+----------------------------------------------------------------------------------------------------
+Document 3:
+
+- learning algorithms to teach a car how to drive at reasonably high speeds off roads avoiding obstacles.
+- that's a robot program med by PhD student Eva Roshen to teach a sort of somewhat strangely configured robot how to get on top of an obstacle, how to get over an obstacle.
+- So I think all of these are robots that I think are very difficult to hand-code a controller for by learning these sorts of learning algorithms.
+- Just a couple more last things, but let me just check what questions you have right now.
+- So if there are no questions, I'll just close with two reminders, which are after class today or as you start to talk with other people in this class, I just encourage you again to start to form project partners, to try to find project partners to do your project with.
+- And also, this is a good time to start forming study groups, so either talk to your friends or post in the newsgroup, but we just encourage you to try to start to do both of those today, okay? Form study groups, and try to find two other project partners.
+```
+
+The retrieved documents will now be shorter, containing only the most relevant segments related to the query, without any redundant or irrelevant information.
+
+## Combining Retrieval Techniques
+
+These advanced retrieval techniques can also be combined for even better results. For example, we can use the contextual compression retriever with MMR to get a diverse set of compressed, relevant segments:
+
+```python
+compression_retriever = ContextualCompressionRetriever(
+    base_compressor=compressor, base_retriever=vectordb.as_retriever(search_type="mmr")
+)
+
+question = "what did they say about matlab?"
+compressed_docs = compression_retriever.get_relevant_documents(question)
+pretty_print_docs(compressed_docs)
+```
+
+```plaintext
+Document 1:
+
+- "those homeworks will be done in either MATLA B or in Octave"
+- "I know some people call it a free ve rsion of MATLAB"
+- "MATLAB is I guess part of the programming language that makes it very easy to write codes using matrices, to write code for numerical routines, to move data around, to plot data."
+- "there's also a software package called Octave that you can download for free off the Internet."
+- "it has somewhat fewer features than MATLAB, but it's free, and for the purposes of this class, it will work for just about everything."
+- "once a colleague of mine at a different university, not at Stanford, actually teaches another machine learning course."
+----------------------------------------------------------------------------------------------------
+Document 2:
+
+"Oh, it was the MATLAB."
+----------------------------------------------------------------------------------------------------
+Document 3:
+
+- learning algorithms to teach a car how to drive at reasonably high speeds off roads avoiding obstacles.
+- that's a robot program med by PhD student Eva Roshen to teach a sort of somewhat strangely configured robot how to get on top of an obstacle, how to get over an obstacle.
+- So I think all of these are robots that I think are very difficult to hand-code a controller for by learning these sorts of learning algorithms.
+- Just a couple more last things, but let me just check what questions you have right now.
+- So if there are no questions, I'll just close with two reminders, which are after class today or as you start to talk with other people in this class, I just encourage you again to start to form project partners, to try to find project partners to do your project with.
+- And also, this is a good time to start forming study groups, so either talk to your friends or post in the newsgroup, but we just encourage you to try to start to do both of those today, okay? Form study groups, and try to find two other project partners.
+```
+
+## Other Retrieval Methods
+
+While vector databases are a popular choice for retrieval, it's worth noting that there are other types of retrieval methods that don't rely on vector embeddings. For example, you could use traditional NLP techniques like TF-IDF or SVM for retrieval.
+
+```python
+from langchain_community.document_loaders.pdf import PyPDFLoader
+from langchain_community.retrievers.svm import SVMRetriever
+from langchain_community.retrievers.tfidf import TFIDFRetriever
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+# Load and split the document
+loader = PyPDFLoader("docs/cs229_lectures/MachineLearning-Lecture01.pdf")
+pages = loader.load()
+all_page_text = [p.page_content for p in pages]
+joined_page_text = " ".join(all_page_text)
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=1500, chunk_overlap=150)
+splits = text_splitter.split_text(joined_page_text)
+
+# Create retrievers
+svm_retriever = SVMRetriever.from_texts(splits, embedding)
+tfidf_retriever = TFIDFRetriever.from_texts(splits)
+
+# Use the retrievers
+question = "what did they say about matlab?"
+docs_svm = svm_retriever.get_relevant_documents(question)
+docs_svm[0]
+# Document(page_content="let me just check what questions you have righ t now. So if there are no questions, I'll just \nclose with two reminders, which are after class today or as you start to talk with other \npeople in this class, I just encourage you again to start to form project partners, to try to \nfind project partners to do your project with. And also, this is a good time to start forming \nstudy groups, so either talk to your friends  or post in the newsgroup, but we just \nencourage you to try to star t to do both of those today, okay? Form study groups, and try \nto find two other project partners.  \nSo thank you. I'm looking forward to teaching this class, and I'll see you in a couple of \ndays.   [End of Audio]  \nDuration: 69 minutes")
+docs_tfidf = tfidf_retriever.get_relevant_documents(question)
+docs_tfidf[0]
+# Document(page_content="Saxena and Min Sun here did, wh ich is given an image like this, right? This is actually a \npicture taken of the Stanford campus. You can apply that sort of cl ustering algorithm and \ngroup the picture into regions. Let me actually blow that up so that you can see it more \nclearly. Okay. So in the middle, you see the lines sort of groupi ng the image together, \ngrouping the image into [inaudible] regions.  \nAnd what Ashutosh and Min did was they then  applied the learning algorithm to say can \nwe take this clustering and us e it to build a 3D model of the world? And so using the \nclustering, they then had a lear ning algorithm try to learn what the 3D structure of the \nworld looks like so that they could come up with a 3D model that you can sort of fly \nthrough, okay? Although many people used to th ink it's not possible to take a single \nimage and build a 3D model, but using a lear ning algorithm and that sort of clustering \nalgorithm is the first step. They were able to.  \nI'll just show you one more example. I like this  because it's a picture of Stanford with our \nbeautiful Stanford campus. So again, taking th e same sort of clustering algorithms, taking \nthe same sort of unsupervised learning algor ithm, you can group the pixels into different \nregions. And using that as a pre-processing step, they eventually built this sort of 3D model of Stanford campus in a single picture.  You can sort of walk  into the ceiling, look")
+```
+
+These are just examples of other retrieval methods available in LangChain. There are plenty more techniques out there, and you're encouraged to explore them based on your specific use case and requirements.
+
+Now's a good time to pause and try out all these different retrieval techniques. You'll likely notice that some are better than others at various things, so it's worth experimenting with a wide variety of questions to see how they perform.
+
+The Self-Query Retriever is particularly interesting, so you might want to try it out with more complex metadata filters, perhaps even making up nested metadata structures and seeing if the language model can infer them correctly. This is some of the more advanced stuff out there, and it's exciting to be able to share it with you.
+
+## Conclusion
+
+This blog post covered advanced retrieval techniques in LangChain like Maximum Marginal Relevance (MMR), Self-Query Retriever, Contextual Compression, and briefly touched on TF-IDF and SVM retrievers. These methods help overcome edge cases, retrieve relevant and diverse documents, and enhance the performance of retrieval-augmented generation (RAG) applications. Combining techniques often yields better results. Experiment with these retrieval methods on your own data, and explore other evolving techniques as the field of retrieval rapidly advances.
+
+### Source Code
+
+[https://github.com/RutamBhagat/LangChainHCCourse2/blob/main/course\_2/retrieval.ipynb](https://github.com/RutamBhagat/LangChainHCCourse2/blob/main/course_2/retrieval.ipynb)

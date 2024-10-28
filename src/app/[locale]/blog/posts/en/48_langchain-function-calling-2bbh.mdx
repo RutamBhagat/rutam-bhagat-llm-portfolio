@@ -1,0 +1,226 @@
+---
+title: "LangChain: Function Calling"
+publishedAt: "25/05/2024, 06:42 am"
+---
+
+![LangChain: Function Calling](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/4k7pbqpf3jqcramtco9l.png)
+
+In this blog post, we'll dive into the integration of OpenAI functions (or tools) with LangChain expression language. We'll also explore Pydantic, a Python library that simplifies the construction of OpenAI functions/tools. Additionally, we'll discuss the recent shift from functions to tools in OpenAI's API and how it impacts the workflow.
+
+OpenAI has deprecated the use of functions in favor of tools. The primary difference between the two is that the tools API allows the model to request multiple functions/tools to be invoked simultaneously, potentially reducing response times in certain architectures. As a result, it's recommended to use the tools agent for OpenAI models.
+
+However, it's important to note that the functions format remains relevant for open-source models and providers that have adopted it. The agent we'll discuss in this blog post is expected to work for such models.
+
+For OpenAI models, it's advised to use the tools API instead of the functions API. The tools API is designed to work with models like gpt-3.5-turbo-0613 and gpt-4-0613, which have been fine-tuned to detect when a tool should be called and respond with the inputs that should be passed to the tool.
+
+The OpenAI Tools Agent is designed to work with these models and the tools API. It provides a more reliable and efficient way to return valid and useful tool calls than a generic text completion or chat API.
+
+While the functions format is still relevant for certain use cases, the tools API and the OpenAI Tools Agent represent a more modern and recommended approach for working with OpenAI models.
+
+## What is Pydantic?
+
+Pydantic is a data validation library for Python. It makes it easy to define different schemas and export those schemas to JSON format. This capability is particularly useful when working with OpenAI functions/tools, as we can use Pydantic objects to create the required function/tool descriptions.
+
+If you recall, the OpenAI function descriptions were essentially large JSON blobs with numerous components. By using Pydantic, we can abstract away the complexities of constructing these JSON structures manually.
+
+The way we'll utilize Pydantic is by defining a Pydantic class. It's very similar to a regular Python class, but the primary distinction is that instead of having an `__init__` method, we'll list the attributes and their types directly under the class definition. It's important to note that we won't actually use these classes for any functional purpose; we'll solely use them to generate the OpenAI functions/tools JSON.
+
+### Pydantic Syntax
+
+Pydantic data classes combine Python's data classes with the validation of Pydantic. They offer a concise way to define data structures while ensuring that the data adheres to specified types and constraints.
+
+In standard Python, you would create a class like this:
+
+```python
+from typing import List
+from pydantic import BaseModel, Field
+
+class User:
+    def __init__(self, name: str, age: int, email: str) -> None:
+        self.name = name
+        self.age = age
+        self.email = email
+
+foo = User(name="Joe", age=32, email="joe@gmail.com")
+foo.name  # Output: 'Joe'
+
+foo = User(name="Joe", age="Bar", email="joe@gmail.com")
+foo.age  # Output: 'Bar'
+```
+
+With Pydantic, we can have our class inherit from `BaseModel` and then define our attributes just under the class definition with various type hints.
+
+```python
+class pUser(BaseModel):
+    name: str
+    age: int
+    email: str
+
+foo_p = pUser(name="Jane", age=32, email="jane@gmail.com")
+foo_p.name  # Output: 'Jane'
+```
+
+**Note**: The next code snippet is expected to fail.
+
+```python
+foo_p = pUser(name="Jane", age="Bar", email="jane@gmail.com")
+# Note: This will throw a type error which is expected
+```
+
+One other thing we can do with Pydantic is we can actually nest these data structures.
+
+```python
+class Classroom(BaseModel):
+    students: List[pUser]
+
+student1 = pUser(name="Joe", age=32, email="joe@gmail.com")
+student2 = pUser(name="Jane", age=32, email="jane@gmail.com")
+
+classroom = Classroom(students=[student1, student2])
+classroom  # Output: Classroom(students=[pUser(name='Joe', age=32, email='joe@gmail.com'), pUser(name='Jane', age=32, email='jane@gmail.com')])
+```
+
+This is a brief introduction to Pydantic. If you want to learn more, I'd encourage you to explore their documentation or try out different type hints to see how they shape the resulting objects.
+
+## Pydantic to OpenAI Function/Tool Definition
+
+Now, let's discuss how we can use Pydantic to create OpenAI function/tool definitions. What we'll do is create a Pydantic object that we can then cast to the JSON schema required by OpenAI. Importantly, the Pydantic object we create isn't actually going to perform any functional task; we're solely using it to generate the schema.
+
+```python
+class WeatherSearch(BaseModel):
+    """Call this with an airport code to get the weather at that airport"""
+    airport_code: str = Field(description="airport code to get weather for")
+
+from langchain_core.utils.function_calling import convert_to_openai_function
+
+weather_function = convert_to_openai_function(WeatherSearch)
+weather_function
+```
+
+We've made some assumptions about how people would want to create OpenAI functions/tools. One assumption is that we've made the docstring required because it gets incorporated into the function/tool description. As we discussed earlier, the functions/tools essentially act as prompts, and providing a clear description of what the function/tool does is crucial. Therefore, we've added checks to ensure that the description is provided.
+
+However, you'll notice that there's no description for the `airport_code` argument. Descriptions for arguments are optional in LangChain. They're not required.
+
+```python
+class WeatherSearch2(BaseModel):
+    """Call this with an airport code to get the weather at that airport"""
+    airport_code: str
+    # Notice: There is no description for this parameter
+    # This is optional
+
+convert_to_openai_function(WeatherSearch2)
+```
+
+## Using with LangChain Expression Language
+
+Let's now look at combining OpenAI functions/tools with LangChain Expression Language.
+
+```python
+from langchain_openai import ChatOpenAI
+
+model = ChatOpenAI()
+model.invoke("what is the weather in SF today?", functions=[weather_function])
+```
+
+We'll create an instance of the `ChatOpenAI` model. For now, we'll interact with it directly. Specifically, we're going to call the `invoke` method on this model and pass in keyword arguments, such as the `weather_function` we defined earlier.
+
+Here, what we get back from the model is a content message that's null. In the `additional_kwargs` field, we'll have the `function_call` parameter, which returns a function call with the name `WeatherSearch` and the arguments `airport_code` set to `SFO`. So it's using the function appropriately.
+
+We can also bind the function invocations to the model. One reason for doing this is so that we can pass the model and functions together, without having to worry about always passing in the function keyword arguments.
+
+```python
+model_with_function = model.bind(functions=[weather_function])
+model_with_function.invoke("what is the weather in sf?")
+# AIMessage(content='', additional_kwargs={'function_call': {'arguments': '{"airport_code":"SFO"}', 'name': 'WeatherSearch'}}, response_metadata={'token_usage': {'completion_tokens': 17, 'prompt_tokens': 69, 'total_tokens': 86}, 'model_name': 'gpt-3.5-turbo', 'system_fingerprint': None, 'finish_reason': 'function_call', 'logprobs': None}, id='run-e40ecdda-e764-465f-85ab-71f4f9de195d-0')
+```
+
+We can now call this `model_with_function` directly and just pass in the input query. As you can see, it responds and still uses the function call, because it knows that the function calls exist since we've bound them to the model.
+
+### Forcing it to use a function
+
+We can force the model to use a specific function:
+
+```python
+model_with_forced_function = model.bind(functions=[weather_function], function_call={"name":"WeatherSearch"})
+model_with_forced_function.invoke("what is the weather in sf?")
+# AIMessage(content='', additional_kwargs={'function_call': {'arguments': '{"airport_code":"SFO"}', 'name': 'WeatherSearch'}}, response_metadata={'token_usage': {'completion_tokens': 7, 'prompt_tokens': 79, 'total_tokens': 86}, 'model_name': 'gpt-3.5-turbo', 'system_fingerprint': None, 'finish_reason': 'stop', 'logprobs': None}, id='run-a30b6829-ff00-4f3b-bbe7-28d7117a1b9f-0')
+```
+
+Here, we're binding the `weather_function` to the model and also specifying the `function_call` parameter with the name of the function we want to force it to use.
+
+```python
+# Note: This doesn't need a function call, and since the input isn't a city, it's hallucinating on the airport code
+model_with_forced_function.invoke("hi!")
+# AIMessage(content='', additional_kwargs={'function_call': {'arguments': '{"airport_code":"JFK"}', 'name': 'WeatherSearch'}}, response_metadata={'token_usage': {'completion_tokens': 7, 'prompt_tokens': 74, 'total_tokens': 81}, 'model_name': 'gpt-3.5-turbo', 'system_fingerprint': None, 'finish_reason': 'stop', 'logprobs': None}, id='run-4dc1b853-c9a7-4a44-b587-04d06dffcdb4-0')
+```
+
+In the above example, since the input doesn't contain a city name, the model is trying to interpret "hi!" as an airport code, which leads to an incorrect response.
+
+### Using in a Chain
+
+We can use this model bound to a function in a chain, just as we normally would:
+
+```python
+from langchain.prompts import ChatPromptTemplate
+
+prompt = ChatPromptTemplate.from_messages([
+    ("system", "You are a helpful assistant"),
+    ("user", "{input}")
+])
+
+chain = prompt | model_with_function
+chain.invoke({"input": "what is the weather in sf?"})
+# AIMessage(content='', additional_kwargs={'function_call': {'arguments': '{"airport_code":"SFO"}', 'name': 'WeatherSearch'}}, response_metadata={'token_usage': {'completion_tokens': 17, 'prompt_tokens': 75, 'total_tokens': 92}, 'model_name': 'gpt-3.5-turbo', 'system_fingerprint': None, 'finish_reason': 'function_call', 'logprobs': None}, id='run-d67d8a7b-72af-4a0e-9119-ca14e1572e07-0')
+```
+
+Here, we're creating a simple prompt template and then piping it with the `model_with_function` to create a chain. When we invoke the chain with the input "what is the weather in sf?", it uses the bound function to generate the response.
+
+## Using Multiple Functions
+
+Even better, we can pass a set of functions and let the LLM (Large Language Model) decide which one to use based on the question context.
+
+```python
+class ArtistSearch(BaseModel):
+    """Call this to get the names of songs by a particular artist"""
+    artist_name: str = Field(description="name of artist to look up")
+    n: int = Field(description="number of results")
+```
+
+We'll then create a new list of functions, and this time, there will be two functions:
+
+```python
+functions = [
+    convert_to_openai_function(WeatherSearch),
+    convert_to_openai_function(ArtistSearch),
+]
+```
+
+We'll create a new object called `model_with_functions` by binding the list of functions to the model:
+
+```python
+model_with_functions = model.bind(functions=functions)
+```
+
+Now let's try invoking this with different inputs and see what happens:
+
+```python
+model_with_functions.invoke("what is the weather in sf?")
+# AIMessage(content='', additional_kwargs={'function_call': {'arguments': '{"airport_code":"SFO"}', 'name': 'WeatherSearch'}}, response_metadata={'token_usage': {'completion_tokens': 17, 'prompt_tokens': 116, 'total_tokens': 133}, 'model_name': 'gpt-3.5-turbo', 'system_fingerprint': None, 'finish_reason': 'function_call', 'logprobs': None}, id='run-f56d4dd1-6a74-4419-bd35-9d0487aa3902-0')
+model_with_functions.invoke("what are three songs by taylor swift?")
+# AIMessage(content='', additional_kwargs={'function_call': {'arguments': '{"artist_name":"Taylor Swift","n":3}', 'name': 'ArtistSearch'}}, response_metadata={'token_usage': {'completion_tokens': 21, 'prompt_tokens': 118, 'total_tokens': 139}, 'model_name': 'gpt-3.5-turbo', 'system_fingerprint': None, 'finish_reason': 'function_call', 'logprobs': None}, id='run-cbeda552-2b1d-4ed4-af47-3829b7ff6d2d-0')
+```
+
+And again here, we're not forcing it to call a function. So if we just say "hi", it should respond with something that doesn't use functions at all.
+
+```python
+model_with_functions.invoke("hi!")
+# AIMessage(content='Hello! How can I assist you today?', response_metadata={'token_usage': {'completion_tokens': 10, 'prompt_tokens': 111, 'total_tokens': 121}, 'model_name': 'gpt-3.5-turbo', 'system_fingerprint': None, 'finish_reason': 'stop', 'logprobs': None}, id='run-a7817d1d-d4b7-4056-a748-1d4ca48d9e0b-0')
+```
+
+## Conclusion
+
+In this post, we looked at how to combine OpenAI functions and tools with LangChain expression language, using Pydantic to make it easier to build OpenAI functions. We talked about the change from functions to tools in OpenAI's API and how it can make things faster. By combining OpenAI functions and tools with LangChain, we can build strong applications that work well with outside data sources and software workflows, making the most of large language models.
+
+# Source Code
+
+[https://github.com/RutamBhagat/LangChainHCCourse3/blob/main/course\_3/Langchain\_OpenAI\_Function\_Calling.ipynb](https://github.com/RutamBhagat/LangChainHCCourse3/blob/main/course_3/Langchain_OpenAI_Function_Calling.ipynb)

@@ -1,0 +1,188 @@
+---
+title: "Auto-Merging: RAG Retrieval Technique"
+publishedAt: "04/04/2024, 08:56 pm"
+---
+
+![Auto-Merging: RAG Retrieval Technique](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/5s1lbd6vm5z5898ayngy.jpg)
+
+With highly complex LLM models workflow we face some challenges, particularly when it comes to handling fragmented and disjointed information. This is where the concept of auto-merging retrieval comes into play, offering a useful solution.
+
+In this blog post, we'll dive into auto-merging retrieval, exploring its inner workings, implementation, and real-world applications.
+
+## Understanding the Need for Auto-Merging Retrieval
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/cwzj81pbtiweaq4nfluj.png)
+
+
+
+One of the primary challenges faced by AI applications that rely on language models is the fragmentation of retrieved context chunks. Traditional retrieval methods often result in a collection of disjointed text snippets, making it difficult for the language model to synthesize and make sense of the information. This fragmentation becomes even more pronounced as the chunk size decreases, leading to potential issues with context understanding and coherence. To illustrate this challenge, let's consider a scenario where you're working on a question-answering system for a legal document corpus. The system retrieves multiple context chunks related to the query, but these chunks are scattered throughout the document, lacking the necessary flow and continuity. As a result, the language model struggles to piece together the relevant information, potentially leading to inaccurate or incomplete responses.
+
+## The Auto-Merging Retrieval Solution
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/hhuxsisjir067tkpfowa.png)
+
+
+
+Auto-merging retrieval presents an elegant solution to this problem by introducing a hierarchical structure that links smaller chunks to larger parent chunks. This approach works by defining a hierarchy of smaller chunks, each linked to a bigger parent chunk, where the parent chunk can contain multiple child chunks. During the retrieval process, auto-merging retrieval employs a heuristic that merges smaller chunks into their respective parent chunk if a certain percentage threshold is exceeded. This means that instead of retrieving fragmented snippets, the system retrieves the more coherent and complete parent chunk, ensuring a more seamless flow of information. Let's revisit our legal document example. With auto-merging retrieval, the system would first parse the documents into a hierarchical structure, where smaller chunks are linked to larger parent chunks. When a query is made, the system retrieves the relevant smaller chunks, but if a significant portion of these chunks belong to the same parent chunk, they are automatically merged, providing the language model with a more continuous and contextual representation of the information.
+
+## Setting up an Auto-Merging Retriever
+
+To implement auto-merging retrieval, we'll use LlamaIndex, a Python library designed for building and querying databases using language models. Here's a step-by-step breakdown of the setup process:
+
+```python
+    from llama_index import Document
+    from llama_index.node_parser import HierarchicalNodeParser
+    
+    # Load your documents
+    document = Document(text="\n\n".join([doc.text for doc in documents]))
+    
+    # Create a hierarchical node parser with desired chunk sizes
+    node_parser = HierarchicalNodeParser.from_defaults(chunk_sizes=[2048, 512, 128])
+    
+    # Parse the document into a hierarchical structure
+    nodes = node_parser.get_nodes_from_documents([document])
+```
+
+In this code snippet, we first combine our documents into a single `Document` object. Then, we create a `HierarchicalNodeParser` instance, specifying the desired chunk sizes for the hierarchy. Finally, we parse the document into a hierarchical structure using the `get_nodes_from_documents` method, which returns a list of nodes representing the different levels of the hierarchy. 
+
+```python
+    from llama_index.llms import OpenAI
+    from llama_index import ServiceContext, VectorStoreIndex, StorageContext
+    
+    # Initialize the language model and service context
+    llm = OpenAI(model="gpt-3.5-turbo", temperature=0.1)
+    service_context = ServiceContext.from_defaults(llm=llm, embed_model="local:BAAI/bge-small-en-v1.5", node_parser=node_parser)
+    
+    # Create a storage context and add all nodes
+    storage_context = StorageContext.from_defaults()
+    storage_context.docstore.add_documents(nodes)
+    
+    # Build the auto-merging index
+    automerging_index = VectorStoreIndex(leaf_nodes, storage_context=storage_context, service_context=service_context)
+```
+
+In this step, we initialize the language model and service context, which includes the embedding model and node parser. We then create a storage context and add all the parsed nodes to it. Finally, we build the auto-merging index using the `VectorStoreIndex` class, passing in the leaf nodes (smallest chunks), storage context, and service context. c. Defining the Retriever and Query Engine
+
+```python
+    from llama_index.indices.postprocessor import SentenceTransformerRerank
+    from llama_index.retrievers import AutoMergingRetriever
+    from llama_index.query_engine import RetrieverQueryEngine
+    
+    # Create the auto-merging retriever
+    automerging_retriever = automerging_index.as_retriever(similarity_top_k=12)
+    retriever = AutoMergingRetriever(automerging_retriever, automerging_index.storage_context, verbose=True)
+    
+    # Set up the sentence transformer re-ranker
+    rerank = SentenceTransformerRerank(top_n=6, model="BAAI/bge-reranker-base")
+    
+    # Combine the retriever and re-ranker into the query engine
+    auto_merging_engine = RetrieverQueryEngine.from_args(retriever, node_postprocessors=[rerank])
+ 
+```
+
+With the index built, we can now define the retriever and query engine. We create an `AutoMergingRetriever` instance, which handles the merging logic, and combine it with a sentence transformer re-ranker to improve the relevance of the retrieved results. Finally, we create a `RetrieverQueryEngine` by combining the retriever and re-ranker, allowing us to query the index and obtain responses.
+
+Evaluating and Iterating with TruEra One of the most powerful aspects of LlamaIndex is its integration with TruEra, a platform designed for evaluating and iterating on AI models and applications. TruEra provides a suite of tools and metrics to assess the performance of your auto-merging retriever, enabling you to identify areas for improvement and fine-tune your implementation. a. Setting up the Evaluation Environment
+
+```python
+    from trulens_eval import Tru
+    from utils import get_prebuilt_trulens_recorder
+    
+    # Reset the database
+    Tru().reset_database()
+    
+    # Create the TruEra recorder
+    tru_recorder = get_prebuilt_trulens_recorder(auto_merging_engine, app_id='app_0')
+   
+```
+
+Before evaluating our auto-merging retriever, we need to set up the evaluation environment. We first reset the TruEra database to ensure a clean slate, and then create a `TruRecorder` instance, which will record the prompts, responses, and evaluation results during the evaluation process. 
+
+```python
+    eval_questions = []
+    with open('generated_questions.text', 'r') as file:
+        for line in file:
+            item = line.strip()
+            eval_questions.append(item)
+    
+    def run_evals(eval_questions, tru_recorder, query_engine):
+        for question in eval_questions:
+            with tru_recorder as recording:
+                response = query_engine.query(question)
+    
+    run_evals(eval_questions, tru_recorder, auto_merging_engine)
+```
+
+To run the evaluations, we first load a set of evaluation questions from a text file. Then, we define a `run_evals` function that iterates through each question, using the `TruRecorder` to record the query and response for each evaluation. Finally, we call this function with our evaluation questions, recorder, and query engine instances.
+
+```python
+    from trulens_eval import Tru
+    
+    Get the leaderboard with evaluation metrics
+    Tru().get_leaderboard(app_ids=[])
+    
+    Run the TruEra dashboard for detailed analysis
+    Tru().run_dashboard()
+```
+
+With the evaluations complete, we can leverage TruEra's leaderboard and dashboard to analyze the results and gain valuable insights into our auto-merging retriever's performance. The `get_leaderboard` function provides an overview of the evaluation metrics, such as groundedness, context relevance, answer relevance, latency, and total cost. This high-level view allows you to quickly identify areas that require further attention or optimization. For a more detailed analysis, the `run_dashboard` function opens the TruEra dashboard, which offers a lot of information and visualization tools. Within the dashboard, you can drill down into individual records, examine the retrieved context, and understand how the evaluation scores were calculated. This in-depth analysis can help you identify patterns, strengths, and weaknesses, enabling you to make informed decisions about parameter tuning, chunk size adjustments, or even architectural changes. One of the key advantages of TruEra's iterative approach is the ability to experiment with different configurations and compare their performance side-by-side. For example, you could set up multiple versions of your auto-merging retriever, each with different hierarchical structures (e.g., two-layer vs. three-layer) or varying chunk sizes. By evaluating and comparing these configurations, you can determine which setup works best for your specific use case or document type.
+
+```python
+    # Set up different hierarchical structures
+    auto_merging_index_0 = build_automerging_index(
+        documents,
+        llm=OpenAI(model="gpt-3.5-turbo", temperature=0.1),
+        embed_model="local:BAAI/bge-small-en-v1.5",
+        save_dir="merging_index_0",
+        chunk_sizes=[2048, 512],
+    )
+    
+    auto_merging_index_1 = build_automerging_index(
+        documents,
+        llm=OpenAI(model="gpt-3.5-turbo", temperature=0.1),
+        embed_model="local:BAAI/bge-small-en-v1.5",
+        save_dir="merging_index_1",
+        chunk_sizes=[2048, 512, 128],
+    )
+    
+    # Evaluate and compare the configurations
+    auto_merging_engine_0 = get_automerging_query_engine(auto_merging_index_0, ...)
+    auto_merging_engine_1 = get_automerging_query_engine(auto_merging_index_1, ...)
+    
+    tru_recorder_0 = get_prebuilt_trulens_recorder(auto_merging_engine_0, app_id='app_0')
+    tru_recorder_1 = get_prebuilt_trulens_recorder(auto_merging_engine_1, app_id='app_1')
+    
+    run_evals(eval_questions, tru_recorder_0, auto_merging_engine_0)
+    run_evals(eval_questions, tru_recorder_1, auto_merging_engine_1)
+    
+    Tru().get_leaderboard(app_ids=['app_0', 'app_1'])
+```
+
+By comparing the evaluation results across different configurations, you can gain valuable insights into the impact of various parameters and structures on your auto-merging retriever's performance. This iterative process allows you to continuously refine and optimize your implementation, ensuring that it delivers the best possible results for your specific use case.
+
+## Complementary Techniques and Further Evaluation
+
+While auto-merging retrieval is a useful technique, it's important to note that it can be complemented by other advanced retrieval methods, such as sentence window retrieval. These techniques can work in tandem, each addressing different aspects of the retrieval challenge.
+
+For instance, sentence window retrieval can help identify relevant context chunks that may not be contiguous within the document, while auto-merging retrieval excels at merging contiguous chunks into a more coherent whole. By combining these techniques, you can leverage the strengths of both approaches, further enhancing the overall performance of your AI application.
+
+Additionally, TruEra offers a suite of evaluations beyond the RAG triad (answer relevance, context relevance, and groundedness) used in this tutorial. These evaluations can assess various aspects of your application, such as honesty, harmlessness, and helpfulness, ensuring that your AI systems are not only accurate but also ethical and trustworthy.
+
+```python
+from trulens_eval import Tru
+
+# Get a list of available evaluations
+print(Tru().get_evaluations())
+
+# Run additional evaluations
+tru_recorder.evaluate("honesty")
+tru_recorder.evaluate("harmlessness")
+```
+
+By using these additional evaluations, you can gain a more comprehensive understanding of your application's performance and address potential issues or biases that may arise. This holistic approach to evaluation and iteration is crucial for building reliable and trustworthy AI systems that can be deployed in real-world scenarios.
+
+# Conclusion:
+
+In this blog post, we've explored the intricacies of auto-merging retrieval, a useful technique that addresses the challenges of fragmented context retrieval in AI applications. By using a hierarchical structure and intelligent merging algorithms, auto-merging retrieval ensures that language models receive coherent and contextual information, enabling more accurate and reliable responses.

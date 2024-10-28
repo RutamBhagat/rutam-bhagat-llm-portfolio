@@ -1,0 +1,281 @@
+---
+title: "Unstructured: LLM Content Normalization"
+publishedAt: "19/04/2024, 07:05 am"
+---
+
+![Unstructured: LLM Content Normalization](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/nbryahqal66rpkx5663j.jpg)
+
+Content normalization might sound like a daunting technical task, but it's a fundamental step in fully utilizing you LLM apps. Whether you're working with HTML web pages, PowerPoint presentations, or dense PDF research papers, the ability to process and extract meaningful information from these varied sources can make all the difference in the success of your projects.
+
+In this blog, we'll explore the key reasons why content normalization is crucial, and we'll walk through practical examples of how to tackle different document types, from using HTML tags to identifying visual cues in PDFs. By the end, you'll be equipped with the skills to transform your unstructured data into a useful data for your language models, ultimately boosting their performance and the insights they can provide.
+
+## **The Need for Content Normalization**
+
+In the world of NLP and LLM, we often find ourselves dealing with a diverse array of document formats. From the HTML web pages to the PowerPoint presentations, and even dense academic PDFs, the content we need to process can come in a wide variety of shapes and sizes.
+
+The challenge lies in the fact that these different document types have their own unique structures, formatting, and methods of conveying information. An HTML page might use specific tags to denote headings, paragraphs, and other semantic elements, while a PowerPoint slide deck relies on visual cues like font size and formatting to indicate the importance of its content.
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/39crtg4fed3t6gc45pkp.png)
+
+
+
+This diversity can pose a significant obstacle when building LLM applications. Imagine having to write separate logic to extract and process content from HTML, PowerPoint, and PDF sources - it would be a tedious and error-prone process, not to mention the added computational overhead.
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/i8udltl7rlvwx22iqct1.png)
+
+
+
+This is where content normalization comes into play. By transforming these varied document formats into a standardized, machine-readable format, you can unlock several key benefits:
+
+1. **Consistent Processing**: Normalizing your content allows you to apply the same processing techniques, such as chunking, filtering, and enrichment, across all document types. This ensures a streamlined and efficient workflow, regardless of the original source.
+    
+2. **Reduced Processing Costs**: The most computationally intensive part of pre-processing documents is often the initial extraction of the content. By normalizing your data, you can perform subsequent operations, like chunking, in a much more cost-effective manner, as these downstream tasks are typically less resource-intensive.
+    
+3. **Seamless Integration**: When your content is in a standardized format, it becomes easier to integrate it into your language model applications, regardless of the programming language or framework you're using. This opens up new possibilities for cross-platform collaboration and data sharing.
+    
+4. **Improved Downstream Operations**: With your content normalized, you can focus on optimizing your downstream operations, such as text segmentation, entity extraction, and sentiment analysis, without having to worry about the underlying document format. This allows you to iterate and experiment more efficiently.
+    
+
+By embracing content normalization, you'll be well on your way to building more robust, efficient, and versatile LLM applications that can seamlessly process a wide range of data sources. Let's now dive into the specifics of how to tackle different document types.
+
+## **Normalizing HTML Documents**
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/mg557ipu3zmk9ufxaqna.jpeg)
+
+
+
+When it comes to web-based content, HTML documents are one of the most common formats you'll encounter. Fortunately, the structure of HTML provides valuable clues that can help us identify and categorize the different elements within a page.
+
+Let's start by looking at an example HTML document, specifically a blog post from the Unstructured blog:
+
+```python
+from IPython.display import Image
+Image(filename="images/HTML_demo.png", height=600, width=600)
+# Output
+```
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/qljkw4115di1v3retoxy.jpeg)
+
+
+In this example, we can see that the title of the blog post is represented by an `<h1>` tag, while the paragraphs of narrative text are enclosed within `<p>` tags. By using these semantic HTML elements, we can reliably identify the different content types within the document.
+
+But we don't have to stop there. We can also use NLP techniques to further categorize the content. For instance, we can look at the length and structure of the text within the `<p>` tags to differentiate between a short, potentially title-like piece of text and a longer, more narrative-style paragraph.
+
+Here's how we can put this into practice using the Unstructured open-source library:
+
+```python
+from unstructured.partition.html import partition_html
+
+filename = "example_files/medium_blog.html"
+elements = partition_html(filename=filename)
+
+element_dict = [el.to_dict() for el in elements]
+example_output = json.dumps(element_dict[11:15], indent=2)
+print(example_output)
+```
+
+```plaintext
+[
+  {
+    "type": "Title",
+    "element_id": "29887a5ff9846ccc23327565a07e17fa",
+    "text": "Share",
+    "metadata": {
+      "category_depth": 0,
+      "last_modified": "2024-03-30T04:25:39",
+      "page_number": 1,
+      "languages": [
+        "eng"
+      ],
+      "file_directory": "example_files",
+      "filename": "medium_blog.html",
+      "filetype": "text/html"
+    }
+  },
+  # Rest of the JSON data here
+]
+```
+
+This code will parse the HTML document, identify the different elements (such as titles and paragraphs), and serialize them into a standardized JSON format. By examining the output, you can see how the content has been normalized and categorized, making it ready for further processing in your LLM applications.
+
+## **Normalizing PowerPoint Presentations**
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/rksy20mf4qlf6bummrz8.png)
+
+
+
+While HTML documents are widely used for web-based content, in many corporate and academic settings, PowerPoint presentations are ubiquitous. Fortunately, the normalization process for PowerPoint files is quite similar to what we've seen with HTML.
+
+Let's take a look at an example PowerPoint slide on OpenAI:
+
+```python
+Image(filename="images/pptx_slide.png", height=600, width=600)
+# Output
+```
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/j4kkweqvqdrsdjxj10hh.png)
+
+
+
+Under the hood, modern PowerPoint files (`.pptx`) are essentially XML-based, much like HTML. This means we can apply similar rules-based logic to identify and categorize the different elements within the presentation, such as titles, bullet points, and narrative text.
+
+Here's how we can use the Unstructured open-source library to normalize a PowerPoint file:
+
+```python
+from unstructured.partition.pptx import partition_pptx
+
+filename = "example_files/msft_openai.pptx"
+elements = partition_pptx(filename=filename)
+
+element_dict = [el.to_dict() for el in elements]
+JSON(json.dumps(element_dict[:], indent=2))
+```
+
+```plaintext
+[
+    {
+        'type': 'Title',
+        'element_id': '50a4122943273ad2f00ea92bff9c7cb6',
+        'text': 'ChatGPT',
+        'metadata': {
+            'category_depth': 1,
+            'file_directory': 'example_files',
+            'filename': 'msft_openai.pptx',
+            'last_modified': '2024-03-30T04:25:39',
+            'page_number': 1,
+            'languages': ['eng'],
+            'filetype': 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+        }
+    },
+    # Rest of the JSON data here
+]
+```
+
+Just like with the HTML example, this code will parse the PowerPoint file, identify the different elements, and serialize them into a standardized JSON format. You can see how the title "ChatGPT" has been correctly identified, as well as the bullet point content.
+
+## **Normalizing PDF Documents**
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/e9wvab2zaba9vop387jf.png)
+
+
+
+While HTML and PowerPoint files provide a more structured starting point for normalization, PDF documents present a unique challenge. Unlike the semantic markup found in HTML or the XML-based structure of PowerPoint, PDFs rely more on visual cues to convey information.
+
+Let's take a look at an example PDF document, this time an academic paper on Chain-of-Thought reasoning:
+
+```python
+Image(filename="images/cot_paper.png", height=600, width=600)
+# Output
+```
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/oa3b6qspfnws4q5xafrn.png)
+
+
+
+In this case, instead of focusing on tags or XML structures, we need to pay attention to the visual formatting and layout of the content. Elements like bold text, underlined sections, and the overall organization of the document can provide valuable clues about the type of content we're dealing with.
+
+Here's how we can use the Unstructured API to normalize the content of this PDF document:
+
+```python
+import shared
+from unstructured_client import UnstructuredClient
+
+filename = "example_files/CoT.pdf"
+with open(filename, "rb") as f:
+    files=shared.Files(
+        content=f.read(), 
+        file_name=filename,
+    )
+
+req = shared.PartitionParameters(
+    files=files,
+    strategy='hi_res',
+    pdf_infer_table_structure=True,
+    languages=["eng"],
+)
+try:
+    resp = s.general.partition(req)
+    print(json.dumps(resp.elements[:3], indent=2))
+except SDKError as e:
+    print(e)
+```
+
+```plaintext
+[
+  {
+    "type": "Title",
+    "element_id": "bff1fd0ec25e78f1224ad7309a1e79c4",
+    "text": "B All Experimental Results",
+    "metadata": {
+      "filetype": "application/pdf",
+      "languages": [
+        "eng"
+      ],
+      "page_number": 1,
+      "filename": "CoT.pdf"
+    }
+  },
+  {
+    "type": "NarrativeText",
+    "element_id": "ebf8dfb149bcbbd8c4b7f9a7046900a9",
+    "text": "This section contains tables for experimental results for varying models and model sizes, on all benchmarks, for standard prompting vs. chain-of-thought prompting.",
+    "metadata": {
+      "filetype": "application/pdf",
+      "languages": [
+        "eng"
+      ],
+      "page_number": 1,
+      "parent_id": "bff1fd0ec25e78f1224ad7309a1e79c4",
+      "filename": "CoT.pdf"
+    }
+  },
+  # Rest of the JSON data here
+]
+```
+
+In this example, we're using the Unstructured API to process the PDF document. The API uses advanced computer vision and natural language processing models to identify the different elements within the PDF, such as titles, narrative text, and even tables.
+
+By examining the JSON output, you can see how the "All experimental results" section has been correctly identified as a title, while the surrounding text has been categorized as narrative content. This level of content normalization is crucial for effectively integrating PDF sources into your language model applications.
+
+## **Hands-on Experimentation**
+
+Now that you've seen how to normalize HTML, PowerPoint, and PDF documents, it's time to put these techniques into practice. The Unstructured open-source library provides a convenient file upload widget that you can use to explore content normalization on your own documents.
+
+```python
+import panel as pn
+from Utils import upld_file
+pn.extension()
+
+upld_widget = upld_file()
+pn.Row(upld_widget.widget_file_upload)
+```
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/4f8yg4e8cy3o4pqqas1e.png)
+
+
+
+Simply run the code above, and you'll be able to upload your own files to the notebook environment. Once the file is uploaded, you can update the file name in the earlier examples and re-run the partition code to see the normalized output.
+
+For example, if you uploaded an HTML file named "el\_ninu.html", you could update the `filename` variable in the `partition_html` section to point to that file, like this:
+
+```python
+filename = "example_files/el_ninu.html"
+elements = partition_html(filename=filename)
+```
+
+By experimenting with your own documents, you'll gain a deeper understanding of how the content normalization process works and how you can apply it to your specific language model use cases.
+
+## **Conclusion**
+
+In this blog post, we've explored the importance of content normalization for language model applications. By transforming diverse document formats, such as HTML, PowerPoint, and PDF, into a standardized, machine-readable format, you can unlock a wealth of benefits, including consistent processing, reduced computational costs, and seamless integration into your language model workflows.
+
+Through practical examples and hands-on experimentation, you've learned how to leverage the Unstructured open-source library and API to normalize content from various sources. Whether you're dealing with the semantic markup of HTML, the visual cues of PowerPoint, or the layout-driven nature of PDFs, you now have the knowledge and tools to effectively process and extract valuable information from these diverse document types.

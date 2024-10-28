@@ -1,0 +1,139 @@
+---
+title: "Agents: explore the powerful emerging development of LLM as reasoning agents."
+publishedAt: "25/03/2024, 07:34 am"
+---
+
+![Agents: explore the powerful emerging development of LLM as reasoning agents.](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/plhsy23v3ez2n59iyjka.png)
+
+Have you ever thought of a large language model (LLMs) as more than just an information storage? What if I told you that LLMs can act as powerful reasoning engines, capable of using new information and their existing knowledge to solve problems, answer complex questions, and even make decisions? This is where LangChain's Agents framework comes in, opening up a whole new world of possibilities for your AI applications.
+
+As a Machine Learning Engineer specializing in LLMs, I'm constantly exploring new ways to push the boundaries of what these models can do. LangChain's Agents have truly captured my imagination, and I believe they hold immense potential for developers and organizations looking to build intelligent and versatile AI systems.
+
+In this blog post, we'll dive into the exciting world of LangChain Agents. I'll explore how they work, how you can equip them with powerful tools, and even how to create your own custom tools to connect them to any data source imaginable.
+
+##Built-in Tools: Supercharge Your Agents with Search Engines and Wikipedia
+
+LangChain provides several built-in tools that can significantly enhance your agent's capabilities. Two popular examples are DuckDuckGo search and Wikipedia access. These tools allow your agent to access vast amounts of information on the fly, enabling it to answer questions about recent events, historical figures, and much more.
+
+Let's see how you can utilize these tools in practice. First, you need to set up our environment and import the necessary libraries:
+
+```
+import os
+from dotenv import load_dotenv, find_dotenv
+_ = load_dotenv(find_dotenv()) # read local .env file
+
+import warnings
+warnings.filterwarnings("ignore")
+
+# Account for LLM model deprecation
+import datetime
+current_date = datetime.datetime.now().date()
+target_date = datetime.date(2024, 6, 12)
+if current_date > target_date:
+    llm_model = "gpt-3.5-turbo"
+else:
+    llm_model = "gpt-3.5-turbo-0301"
+
+from langchain.agents.agent_toolkits import create_python_agent
+from langchain.agents import load_tools, initialize_agent
+from langchain.agents import AgentType
+from langchain.chat_models import ChatOpenAI
+
+llm = ChatOpenAI(temperature=0, model=llm_model)
+tools = load_tools(["llm-math", "wikipedia"], llm=llm)
+
+agent = initialize_agent(
+    tools, 
+    llm, 
+    agent=AgentType.CHAT_ZERO_SHOT_REACT_DESCRIPTION,
+    handle_parsing_errors=True,
+    verbose=True
+)
+
+```
+Now, imagine you want your agent to answer a question about the 2022 World Cup. Since most LLMs are trained on data up to 2021, they wouldn't have this information readily available. However, by leveraging DuckDuckGo search, the agent can access the latest information and provide an accurate answer:
+
+```
+question = "Who won the 2022 World Cup?"
+result = agent(question)
+print(result)
+
+```
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/66jpozsee8vfn05b5snq.png)
+
+
+
+ The best part? You can easily experiment with different inputs and explore the capabilities of these built-in tools to see what your agent can achieve.
+
+##Python Agent and Custom Tools: Connect to Anything
+
+While built-in tools are powerful, the true magic of LangChain Agents lies in the ability to create your own custom tools. This opens up a world of possibilities, allowing you to connect your agent to any data source, API, or function imaginable.
+
+Let's say you want your agent to be able to tell you the current date. You can easily create a custom "time" tool using Python: 
+
+```
+from langchain.agents import tool
+from datetime import date
+
+@tool
+def time(text: str) -> str:
+    """Returns todays date, use this for any \
+    questions related to knowing todays date. \
+    The input should always be an empty string, \
+    and this function will always return todays \
+    date - any date mathmatics should occur \
+    outside this function."""
+    return str(date.today())
+
+```
+This simple function, decorated with @tool, becomes a powerful tool for your agent. Now, we can add this tool to our agent's toolkit:
+
+```
+agent = initialize_agent(
+    tools + [time], 
+    llm, 
+    agent=AgentType.CHAT_ZERO_SHOT_REACT_DESCRIPTION,
+    handle_parsing_errors=True,
+    verbose=True
+)
+
+```
+Now, if you ask your agent "What's the date today?", it will recognize the need to use the "time" tool and provide you with the correct answer:
+
+```
+result = agent("What's the date today?") 
+print(result)
+
+```
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/iq3l3vmjjf4ay8jzo7yr.png)
+
+
+
+
+This is just the tip of the iceberg. You can create custom tools to access databases, interact with APIs, perform calculations, and much more. The possibilities are truly endless!
+
+##Debugging and Troubleshooting: A Glimpse into the Agent's Mind
+
+It's important to remember that LangChain Agents are still under development and may sometimes produce unexpected results. Thankfully, LangChain provides a handy debugging feature. By setting langchain.debug=True, you can view detailed outputs of the agent's chain of thought, allowing you to identify and address any issues that may arise.
+
+For example, let's run the previous query with debug mode enabled:
+
+```
+import langchain
+langchain.debug = True
+
+result = agent("What's the date today?") 
+print(result)
+
+langchain.debug = False
+
+```
+This will provide you with a detailed breakdown of the agent's reasoning process, including the tools it considered, the actions it took, and the observations it made before arriving at the final answer.
+
+##Conclusion:
+
+LangChain Agents represent a significant leap forward in the field of AI. They empower LLMs to go beyond simple information retrieval and become true reasoning engines, capable of interacting with the world in a meaningful way. By leveraging built-in tools, creating custom tools, and utilizing debugging features, you can build intelligent and versatile AI applications that can tackle a wide range of tasks.

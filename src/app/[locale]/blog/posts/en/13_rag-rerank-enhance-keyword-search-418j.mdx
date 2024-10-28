@@ -1,0 +1,280 @@
+---
+title: "RAG ReRank: Enhance keyword search"
+publishedAt: "29/03/2024, 07:00 pm"
+---
+
+![RAG ReRank: Enhance keyword search](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/kht3mfdbhqigd543oern.jpg)
+
+Have you ever felt frustrated when searching for something in your app, only to find with irrelevant or tangentially related results? Thats because keyword search has its limitations you can change the way we search and retrieve relevant information by usinging RAG: ReRank.
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/98ex8non7untdc0haio0.png)
+
+
+
+In this blog, I'll dive deep into ReRank, a useful method that uses the capabilities of large language models to improve the accuracy and relevance of search results. By the end of this post, you'll not only understand the inner workings of ReRank but also have the tools to implement it in your own projects.
+
+## The Limitations of Traditional Search Methods
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/zq4baa3smm60qk5hlftp.png)
+
+
+
+Before we dive into ReRank, it's essential to understand the limitations of traditional search methods, such as keyword search and dense retrieval. While these techniques are useful but they often fall short when it comes to truly understanding the context and intent behind a user's query.
+
+```python
+from utils import keyword_search
+
+query_1 = "What is the capital of Canada?"
+results = keyword_search(query_1,
+                         client,
+                         properties=["text", "title", "url", "views", "lang", "_additional {distance}"],
+                         num_results=3
+                        )
+
+for i, result in enumerate(results):
+    print(f"i:{i}")
+    print(result.get('title'))
+    print(result.get('text'))
+```
+
+Output:
+
+```python
+i:0
+Monarchy of Canada
+The monarchy of Canada is at the very core of both Canada's federal structure and Westminster-style of parliamentary and constitutional democracy. The monarchy is the foundation of the executive (Queen-in-Council), legislative (Queen's Majesty's Parliament for Canada), and judicial (Queen's Courts for Canada) branches within both federal and provincial jurisdictions. The sovereign is represented in Canada by the Canadian Crown, embodied by the Canadian monarch personally (currently His Majesty King Charles III) and the governor general (the appointed viceroy who represents His Majesty in Canada), as well as the lieutenant governors of the provinces (who represent His Majesty in each province). 
+
+i:1
+Early modern period
+The early modern period is a period in the history of science, spanning roughly from the late 15th century to the late 18th century, in which a significant departure from the medieval approach to science took place. It may be more precisely defined as the period roughly from the Age of Discovery to the rise of modern science.
+
+i:2
+Flag of Canada
+The national flag of Canada, also known as the Canadian Red Ensign, the Maple Leaf, or "l'Unifolié" (French for "the one-leafed"), is a red field with a white square at its centre, in which two red borders become visible with a stylized red maple leaf in its centre. It is from this maple leaf that the flag is commonly referred to as the "Maple Leaf".
+```
+
+As you can see, the results from a simple keyword search for "What is the capital of Canada?" aren't particularly helpful. The algorithm finds documents containing words like "Canada," "capital," and "monarch," but it fails to grasp the actual intent behind the query – finding the capital city of Canada.
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/rt9tp2h30nkxfozzrerx.png)
+
+
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/9h192u1aldl39tah7io7.png)
+
+
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/wc1u9bw6lds6l5t2b6bl.png)
+
+
+
+## Dense Retrieval: Closer but Still Missing the Mark
+
+Dense retrieval, another widely used search technique, tries to address some of the limitations of keyword search by leveraging embeddings and vector similarities. Let's see how it performs with the same query:
+
+```python
+from utils import dense_retrieval
+
+query = "What is the capital of Canada?"
+dense_retrieval_results = dense_retrieval(query, client)
+
+from utils import print_result
+print_result(dense_retrieval_results)
+```
+
+Output:
+
+```python
+i:0
+Ottawa
+Ottawa is the capital city of Canada. It stands on the south bank of the Ottawa River in the eastern portion of southern Ontario. Ottawa borders Gatineau, Quebec, and forms the core of the Ottawa–Gatineau census metropolitan area (CMA) and the National Capital Region (NCR). As of 2021, Ottawa had a city population of 1,017,449 and a metropolitan population of 1,488,307, making it the fourth-largest city and sixth-largest CMA in Canada.
+
+i:1
+Toronto
+Toronto is the capital city of the Canadian province of Ontario. With a recorded population of 2,794,356 in 2021, it is the most populous city in Canada and the fourth most populous city in North America. The city is the anchor of the Golden Horseshoe, an urban agglomeration of 9,765,188 people surrounding the western end of Lake Ontario, as well as being an important global centre for finance, technology, entertainment, media and life sciences. The city is located in Southern Ontario on the northwestern shore of Lake Ontario. 
+
+i:2
+Quebec City
+Quebec City, French Ville de Québec, city, capital of Quebec province, Canada. In the early 17th century, Samuel de Champlain, the founder of New France, established the first permanent European settlement at Quebec. The city obstructed the head of navigation at the St. Lawrence Estuary, a geographic setting which gave it a strategic advantage as a military stronghold. It became the capital of New France in 1663. Quebec covers an area of about 551 square miles (1,425 square km) and is divided between the eastern high ground of Upper Town (Haute-Ville) and the Lower Town (Basse-Ville), set along the shores of the St. Lawrence River. A stone wall, built in the 17th and 18th centuries, encircles Old Quebec, the historic heart of the city. It is one of North America's oldest cities, and it has preserved much of its colonial architectural heritage.
+```
+
+While dense retrieval does a better job by surfacing Ottawa as the correct capital city, it still returns some irrelevant results like Toronto and Quebec City. This is because dense retrieval focuses on semantic similarity, which may not always align with the user's true intent.
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/igm9st657ufaq7mpoz2y.png)
+
+
+
+## Enter ReRank
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/hzg6zyxcv03uqvofffdo.png)
+
+
+
+This is where ReRank comes into play, changing the way we search and retrieve relevant information. ReRank is a technique that harnesses the power of large language models to sort search results based on their relevance to the user's query.
+
+```python
+def rerank_responses(query, responses, num_responses=10):
+    reranked_responses = co.rerank(
+        model = 'rerank-english-v2.0',
+        query = query,
+        documents = responses,
+        top_n = num_responses,
+        )
+    return reranked_responses
+```
+
+By using its understanding of language and context, ReRank assigns a relevance score to each query-response pair, effectively ranking the search results based on how well they address the user's query.
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/ssk8luaqb5vx7q0emk3z.png)
+
+
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/8obx0dy73abp8blhj483.png)
+
+
+
+## Implementing ReRank
+
+Now that we understand the use of ReRank, let's dive into how we can implement it in our projects. We'll use the Cohere and Weaviate libraries for this purpose.
+
+### Step 1: Set up the Environment
+
+First, we need to install the required libraries and load the necessary API keys:
+
+```python
+# !pip install cohere
+# !pip install weaviate-client
+
+import os
+from dotenv import load_dotenv, find_dotenv
+_ = load_dotenv(find_dotenv())  # read local .env file
+
+import cohere
+co = cohere.Client(os.environ['COHERE_API_KEY'])
+
+import weaviate
+auth_config = weaviate.auth.AuthApiKey(
+    api_key=os.environ['WEAVIATE_API_KEY'])
+
+client = weaviate.Client(
+    url=os.environ['WEAVIATE_API_URL'],
+    auth_client_secret=auth_config,
+    additional_headers={
+        "X-Cohere-Api-Key": os.environ['COHERE_API_KEY'],
+    }
+)
+```
+
+### Step 2: Retrieve Initial Search Results
+
+Before we can apply ReRank, we need to have a set of search results to work with. We can use either keyword search or dense retrieval (or a combination of both) to retrieve these initial results.
+
+For example, let's use dense retrieval to search for the query "Who is the tallest person in history?":
+
+```python
+from utils import dense_retrieval
+
+query_2 = "Who is the tallest person in history?"
+results = dense_retrieval(query_2, client)
+
+for i, result in enumerate(results):
+    print(f"i:{i}")
+    print(result.get('title'))
+    print(result.get('text'))
+    print()
+```
+
+Output:
+
+```python
+i:0
+Robert Wadlow
+Robert Pershing Wadlow (February 22, 1918 – July 15, 1940) was a man from Alton, Illinois, who is the tallest person in medical history for whom there is irrefutable evidence. He is often called the "Giant of Illinois".
+
+i:1 
+Leonid Stadnyk
+Leonid Stadnyk (Ukrainian: Леонід Семенович Стадник, August 5, 1970 – August 24, 2014) was a Ukrainian man who, at times during his life, may have been the tallest living person in the world. His height was disputed, with different sources giving it as between 2.54 metres (8 ft 4 in) and 2.72 m (8 ft 11 in). The last height that he was measured at by the Guinness World Records was 2.57 metres (8 ft 5 in) in August 2007.
+
+...
+```
+
+### Step 3: Apply ReRank to Improve Relevance
+
+Now that we have our initial search results, we can use ReRank to sort them based on their relevance to the query:
+
+```python
+texts = [result.get('text') for result in results]
+reranked_text = rerank_responses(query_2, texts)
+
+for i, rerank_result in enumerate(reranked_text):
+    print(f"i:{i}")
+    print(f"{rerank_result}")
+    print()
+```
+
+Output:
+
+```python
+i:0
+Robert Pershing Wadlow (February 22, 1918 – July 15, 1940) was a man from Alton, Illinois, who is the tallest person in medical history for whom there is irrefutable evidence. He is often called the "Giant of Illinois".
+Relevance Score: 0.9726766109466553
+
+i:1
+Leonid Stadnyk (Ukrainian: Леонід Семенович Стадник, August 5, 1970 – August 24, 2014) was a Ukrainian man who, at times during his life, may have been the tallest living person in the world. His height was disputed, with different sources giving it as between 2.54 metres (8 ft 4 in) and 2.72 m (8 ft 11 in). The last height that he was measured at by the Guinness World Records was 2.57 metres (8 ft 5 in) in August 2007.
+Relevance Score: 0.9588131665229797
+
+...
+```
+
+As you can see, ReRank has assigned higher relevance scores to the results that are directly relevant to the query "Who is the tallest person in history?". Robert Wadlow, the person with the highest recorded height, is now ranked at the top with a relevance score of 0.97, followed by Leonid Stadnyk, another contender for the tallest person.
+
+## Real-World Examples and Use Cases
+
+ReRank has a wide range of applications across various domains, from e-commerce and customer support to scientific research and data analysis. Let's explore a few real-world examples that illustrate the power of ReRank:
+
+1. **E-commerce Product Search**
+    
+
+In the world of e-commerce, providing accurate and relevant search results is crucial for customer satisfaction and conversion rates. ReRank can be used to improve the search experience by ranking products based on their relevance to the user's query, taking into account factors like product descriptions, reviews, and customer behavior.
+
+For example, if a customer searches for "wireless noise-canceling headphones," ReRank can surface the most relevant products by analyzing the query and ranking the results based on how well they match the specified criteria (wireless, noise-canceling, headphones).
+
+2. **Customer Support and Knowledge Base Search**
+    
+
+In customer support environments, quickly finding accurate and relevant information is essential for providing high-quality service. ReRank can be applied to search through knowledge base articles, FAQs, and support documentation, ensuring that the most relevant and helpful information is surfaced first.
+
+For instance, if a customer submits a query about "troubleshooting Wi-Fi connectivity issues," ReRank can rank the search results based on their relevance to the specific problem, prioritizing articles and guides that directly address Wi-Fi connectivity troubleshooting.
+
+## Training and Evaluating ReRank Models
+
+While ReRank models can significantly improve search relevance, their performance heavily depends on the quality of the training data and evaluation metrics. Let's explore some best practices for training and evaluating ReRank models:
+
+1. **Training Data**
+    
+
+ReRank models are trained on a combination of positive and negative examples, where positive examples are query-response pairs that are highly relevant, and negative examples are pairs that are not relevant.
+
+To ensure optimal performance, it's crucial to have a diverse and representative dataset that covers a wide range of queries and responses. The quality of the training data directly impacts the model's ability to accurately assess relevance.
+
+2. **Evaluation Metrics**
+    
+
+Several metrics can be used to evaluate the performance of ReRank models, including:
+
+* **Mean Average Precision (MAP)**: This metric measures the precision of the model across different recall levels, providing an overall assessment of the model's performance.
+    
+* **Mean Reciprocal Rank (MRR)**: MRR measures how well the model ranks the most relevant result, making it useful for evaluating scenarios where only the top result matters.
+    
+* **Normalized Discounted Cumulative Gain (NDCG)**: NDCG takes into account the position of the relevant results, assigning higher weights to results at the top of the ranking.
+    
+
+By tracking these metrics during training and evaluation, you can monitor the model's performance and make necessary adjustments to improve its relevance scoring.

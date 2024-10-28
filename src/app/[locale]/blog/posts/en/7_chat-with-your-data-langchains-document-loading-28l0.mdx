@@ -1,0 +1,169 @@
+---
+title: "Document Loading: Learn the fundamentals of data loading"
+publishedAt: "25/03/2024, 07:46 am"
+---
+
+![Document Loading: Learn the fundamentals of data loading](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/on3sgvowja2a7isuowur.jpg)
+
+ Have you ever wished you could engage in a conversation with all the information scattered across the internet in websites, PDFs, and videos? Imagine being able to ask questions and receive useful responses based on the all these sources. 
+
+In this blog post, I'll cover the fundamentals of document loaders, their types, and how to use them to get all information from your sources. By the end, you'll be equipped with the knowledge and tools to transform your data into a virtual conversational companion, ready to assist you in analyzing and making informed decisions. 
+
+##Understanding Document Loaders: The Key to Conversing with Your Data
+
+ At the heart of any application that can converse with data lies the ability to load and process that information effectively. Document loaders make this possible, acting as the bridge between your data sources and the application's understanding.
+
+LangChain's document loaders are designed to handle a wide variety of data formats and sources, from good old text files to proprietary databases. Their primary purpose is to take this diverse range of inputs and convert them into a standardized format that the application can comprehend – a document object containing the content and associated metadata.
+
+But what exactly do we mean by "conversing with your data"? Imagine being able to ask questions like "What were the key points discussed in this PDF?" or "Can you summarize the main ideas from this YouTube video?" and receiving accurate, contextual responses tailored to your needs. That's the power of document loaders – they enable you to interact with your data in a natural, conversational manner. 
+
+##Exploring the Diverse World of Document Loaders
+
+LangChain has over 80 different document loaders, each specialized in handling various data sources and formats. Here are a few examples of document loaders:
+
+##1. Unstructured Data Loaders
+
+These loaders are designed to handle unstructured data, such as public data sources like YouTube, Twitter, and Hacker News, as well as proprietary data sources like Figma and Notion.
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/evk2ziove9tesd24uan2.jpg)
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/3vf8xr6gtcoomjmr93f8.jpg)
+
+##1. Unstructured Data Loaders
+
+These loaders are designed to handle unstructured data, such as public data sources like YouTube, Twitter, and Hacker News, as well as proprietary data sources like Figma and Notion.
+
+```
+# Loading a PDF
+from langchain.document_loaders import PyPDFLoader
+loader = PyPDFLoader("docs/cs229_lectures/MachineLearning-Lecture01.pdf")
+pages = loader.load()
+
+# Loading a YouTube video
+from langchain.document_loaders.generic import GenericLoader
+from langchain.document_loaders.parsers import OpenAIWhisperParser
+from langchain.document_loaders.blob_loaders.youtube_audio import YoutubeAudioLoader
+
+url = "https://www.youtube.com/watch?v=jGwO_UgTS7I"
+save_dir = "docs/youtube/"
+loader = GenericLoader(YoutubeAudioLoader([url], save_dir), OpenAIWhisperParser())
+docs = loader.load()
+```
+##2. Structured Data Loaders
+
+While primarily designed for unstructured data, LangChain also offers loaders capable of handling structured data in tabular formats, such as those found in Airbyte, Stripe, and Airtable. These loaders allow you to perform question answering and semantic searches on the textual data contained within these structured sources.
+
+##3. Web-based Loaders
+
+In today's interconnected world, the internet is a treasure trove of knowledge. LangChain's web-based loaders empower you to tap into this vast resource, enabling you to load and converse with content from websites and URLs.
+
+```
+from langchain.document_loaders import WebBaseLoader
+
+loader = WebBaseLoader("https://github.com/basecamp/handbook/blob/master/37signals-is-you.md")
+docs = loader.load()
+```
+##4. Notion Loaders
+
+Notion has become a popular hub for storing personal and company data, making it a valuable source of information. LangChain's NotionDirectoryLoader allows you to export your Notion data into a Markdown or CSV format, which can then be loaded and conversed with seamlessly.
+
+```
+from langchain.document_loaders import NotionDirectoryLoader
+loader = NotionDirectoryLoader("docs/Notion_DB")
+docs = loader.load()
+```
+These are just a few examples of the diverse range of document loaders available in LangChain. With each loader specifically made to handle specific data formats and sources, allowing you to converse with your data regardless of its origin or structure.
+
+##Putting Document Loaders into Action
+
+Now that we've explored the world of document loaders, let's dive into some practical examples of how to leverage their power. But first, let's set up our environment by importing the necessary libraries and loading our API key.
+
+```
+import os
+import openai
+import sys
+sys.path.append('../..')
+
+from dotenv import load_dotenv, find_dotenv
+_ = load_dotenv(find_dotenv())  # read local .env file
+
+openai.api_key = os.environ['OPENAI_API_KEY']
+```
+##Conversing with PDFs
+
+Imagine being able to ask questions about that dense research paper or instructional manual, and receiving concise, relevant responses. That's the use of document loaders when applied to PDFs.
+
+```
+from langchain.document_loaders import PyPDFLoader
+
+loader = PyPDFLoader("docs/cs229_lectures/MachineLearning-Lecture01.pdf")
+pages = loader.load()
+
+print(pages[0].page_content[:500])
+# Output: MachineLearning-Lecture01  
+# Instructor (Andrew Ng):  Okay. Good morning. Welcome to CS229, the machine 
+# learning class. So what I wanna do today is ju st spend a little time going over the logistics 
+# of the class, and then we'll start to  talk a bit about machine learning.  
+# By way of introduction, my name's  Andrew Ng and I'll be instru ctor for this class. And so 
+# I personally work in machine learning, and I' ve worked on it for about 15 years now, and 
+# I actually think that machine learning i
+
+print(pages[0].metadata)
+# Output: {'source': 'docs/cs229_lectures/MachineLearning-Lecture01.pdf', 'page': 0}
+```
+With just a few lines of code, we've loaded a PDF transcript from Andrew Ng's famous CS229 course, complete with page content and metadata. Now, we can build an application that allows users to ask questions about this lecture, receiving responses tailored to the specific context and content.
+
+##Conversing with YouTube Videos
+
+YouTube is a large source of educational content, from lectures and tutorials to interviews and more. With LangChain's document loaders, you can unlock the potential of this vast repository by transcribing and conversing with your favorite videos.
+
+```
+from langchain.document_loaders.generic import GenericLoader
+from langchain.document_loaders.parsers import OpenAIWhisperParser
+from langchain.document_loaders.blob_loaders.youtube_audio import YoutubeAudioLoader
+
+url = "https://www.youtube.com/watch?v=jGwO_UgTS7I"
+save_dir = "docs/youtube/"
+loader = GenericLoader(YoutubeAudioLoader([url], save_dir), OpenAIWhisperParser())
+docs = loader.load()
+
+print(docs[0].page_content[:500])
+# Output: "Welcome to CS229 Machine Learning. Uh, some of you know that this is a class that's taught at Stanford for a long time. And this is often the class that, um, I most look forward to teaching each year because this is where we've helped, I think, several generations of Stanford students become experts in machine learning, got- built many of their products and services and startups that I'm sure, many of you or probably all of you are using, uh, uh, today. Um, so what I want to do today was spend s"
+```
+In this example, we've loaded the transcript of Andrew Ng's CS229 lecture from YouTube, leveraging the power of the OpenAI Whisper parser to convert the audio into text. Now, we can build applications that allow users to ask questions about the lecture, receiving responses based on the transcribed content.
+
+##Conversing with Web Content
+
+The internet is a vast repository of knowledge, and with LangChain's web-based loaders, you can tap into this resource and converse with web content as if it were a personal assistant.
+
+```
+from langchain.document_loaders import WebBaseLoader
+
+loader = WebBaseLoader("https://github.com/basecamp/handbook/blob/master/37signals-is-you.md")
+docs = loader.load()
+
+print(docs[0].page_content[:500])
+# Output: (Truncated HTML content)
+```
+While this example demonstrates loading content from a URL, you'll notice that the output will include a significant amount of HTML markup. In such cases, post-processing the loaded content may be necessary to extract the relevant textual information effectively.
+
+##Conversing with Notion Data
+
+Notion has become a popular hub for storing personal and company data, making it a valuable source of information to converse with. LangChain's NotionDirectoryLoader simplifies the process of loading and conversing with your Notion data.
+
+```
+from langchain.document_loaders import NotionDirectoryLoader
+loader = NotionDirectoryLoader("docs/Notion_DB")
+docs = loader.load()
+
+print(docs[0].page_content[:200])
+# Output: # Blendle's Employee Handbook
+
+# This is a living document with everything we've learned working with people while running a startup. And, of course, we continue to learn. Therefore it's a document that
+```
+ By exporting your Notion data into a Markdown or CSV format and using the NotionDirectoryLoader, you can seamlessly load and converse with the contents of your Notion databases.
+
+##Conclusion
+
+In this blog post, I've explored document loaders and how they enable you to converse with your data like. From PDFs and YouTube videos to web content and Notion databases, LangChain's extensive collection of document loaders allows you to use the knowledge from these diverse sources. 

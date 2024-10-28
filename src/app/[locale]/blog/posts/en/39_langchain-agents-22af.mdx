@@ -1,0 +1,213 @@
+---
+title: "LangChain: Agents"
+publishedAt: "10/05/2024, 10:27 pm"
+---
+
+![LangChain: Agents](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/ngt2vbvtjjayvx2bphh8.jpg)
+
+Large language models (LLMs) have emerged as useful AI systems capable of understanding and generating human-like text. However, their true potential lies in their ability to act as reasoning engines, processing new information and answering complex questions. LangChain's Agents unleashes this potential by allowing LLMs to interact with various tools and databases, assisting in reasoning and decision-making tasks. In this blog post, we'll dive deep into LangChain's Agents, exploring how to configure them with built-in tools and create custom tools to extend their capabilities.
+
+# Understanding LLM Agents
+
+## What are LLM Agents?
+
+At their core, LLM Agents are a combination of an LLM and a set of tools, such as search engines, APIs, or data stores. The LLM acts as a reasoning engine, utilizing these tools and available information to solve complex tasks.
+
+Imagine having a personal assistant that can not only understand your human language instructions but also access and process information from various sources to help you make informed decisions. That's the power of LLM Agents in a nutshell.
+
+## Benefits of LLM Agents
+
+1. **Leverage LLM's Natural Language Understanding and Generation Capabilities**: LLMs excel at processing and generating human-like text, making them well-suited for natural language interactions.
+    
+2. **Access and Process External Information from Various Sources**: By integrating with tools like search engines, APIs, and databases, LLM Agents can retrieve and process information beyond their initial training data.
+    
+3. **Combine Reasoning with Tool Interactions for Complex Tasks**: LLM Agents can reason over the retrieved information and use it to make decisions, answer questions, or even take actions by interacting with the integrated tools.
+    
+
+# Working with Built-in LangChain Tools
+
+LangChain comes pre-equipped with a range of built-in tools that you can easily integrate with your LLM Agents. Let's explore two popular examples: DuckDuckGo Search and Wikipedia.
+
+## Integrating DuckDuckGo Search and Wikipedia
+
+```python
+import os
+from dotenv import load_dotenv, find_dotenv
+
+_ = load_dotenv(find_dotenv())
+
+#!pip install -U wikipedia
+
+from langchain_experimental.agents.agent_toolkits import create_python_agent
+from langchain_experimental.tools.python.tool import PythonREPLTool
+from langchain.agents import load_tools
+from langchain_openai import ChatOpenAI
+from langchain.agents import AgentExecutor, create_react_agent
+from langchain import hub
+
+prompt = (
+    hub.pull("hwchase17/react")
+    + " once you have final answer just exit chain do not continue"
+)
+llm_model = "gpt-3.5-turbo"
+llm = ChatOpenAI(temperature=0, model=llm_model)
+
+tools = load_tools(["llm-math", "wikipedia"], llm=llm)
+
+agent = create_react_agent(llm, tools, prompt)
+agent_executor = AgentExecutor(
+    agent=agent,
+    tools=tools,
+    features="html.parser",
+    handle_parsing_errors=True,
+    verbose=True,
+)
+```
+
+In this code snippet, we're importing the necessary libraries and dependencies, configuring the LLM and agent settings, and loading the DuckDuckGo Search and Wikipedia tools.
+
+With these built-in tools integrated, our LLM Agent can now search for information on the web using DuckDuckGo and retrieve relevant Wikipedia articles to help answer questions or solve tasks.
+
+```python
+agent_executor.invoke({"input": "How old is stephan hawkings"})
+```
+
+```plaintext
+> Entering new AgentExecutor chain...
+I need to find out Stephen Hawking's age.
+Action: wikipedia
+Action Input: Stephen Hawking
+Page: Stephen Hawking
+Summary: Stephen William Hawking (8 January 1942 – 14 March 2018) was an English theoretical physicist, cosmologist, and author who was director of research at the Centre for Theoretical Cosmology at the University of Cambridge. Between 1979 and 2009, he was the Lucasian Professor of Mathematics at Cambridge, widely viewed as one of the most prestigious academic posts in the world.
+
+...
+
+I now know Stephen Hawking's age.
+Final Answer: Stephen Hawking was 76 years old when he died in 2018.
+
+> Finished chain.
+```
+
+```plaintext
+{'input': 'How old is stephan hawkings',
+ 'output': 'Stephen Hawking was 76 years old when he died in 2018.'}
+```
+
+In this example, the agent uses the Wikipedia tool to search for information about Stephen Hawking, retrieving his biography and determining his age at the time of his death.
+
+## Python Agent
+
+LangChain also provides a Python REPL (Read-Eval-Print Loop) tool, allowing your LLM Agent to execute Python code and perform various programming tasks.
+
+```python
+agent = create_python_agent(llm, tool=PythonREPLTool(), verbose=True)
+
+customer_list = [
+    ["Harrison", "Chase"],
+    ["Lang", "Chain"],
+    ["Dolly", "Too"],
+    ["Elle", "Elem"],
+    ["Geoff", "Fusion"],
+    ["Trance", "Former"],
+    ["Jen", "Ayai"],
+]
+
+agent.invoke(
+    f"""Sort these customers by
+last name and then first name
+and print the output: {customer_list}"""
+)
+```
+
+```plaintext
+> Entering new AgentExecutor chain...
+We can use the `sorted()` function in Python to sort the list of customers based on their last name and then first name.
+Action: Python_REPL
+Action Input: customers = [['Harrison', 'Chase'], ['Lang', 'Chain'], ['Dolly', 'Too'], ['Elle', 'Elem'], ['Geoff', 'Fusion'], ['Trance', 'Former'], ['Jen', 'Ayai']]
+sorted_customers = sorted(customers, key=lambda x: (x[1], x[0]))
+print(sorted_customers)
+Observation: [['Jen', 'Ayai'], ['Lang', 'Chain'], ['Harrison', 'Chase'], ['Elle', 'Elem'], ['Trance', 'Former'], ['Geoff', 'Fusion'], ['Dolly', 'Too']]
+
+Thought: I now know the final answer
+Final Answer: [['Jen', 'Ayai'], ['Lang', 'Chain'], ['Harrison', 'Chase'], ['Elle', 'Elem'], ['Trance', 'Former'], ['Geoff', 'Fusion'], ['Dolly', 'Too']]
+
+> Finished chain.
+```
+
+```plaintext
+{'input': "Sort these customers by last name and then first name and print the output: [['Harrison', 'Chase'], ['Lang', 'Chain'], ['Dolly', 'Too'], ['Elle', 'Elem'], ['Geoff', 'Fusion'], ['Trance', 'Former'], ['Jen', 'Ayai']]",
+ 'output': "[['Jen', 'Ayai'], ['Lang', 'Chain'], ['Harrison', 'Chase'], ['Elle', 'Elem'], ['Trance', 'Former'], ['Geoff', 'Fusion'], ['Dolly', 'Too']]"}
+```
+
+In this example, the agent uses the Python REPL tool to sort a list of customers based on their last and first names, executing Python code to achieve the desired result.
+
+# Defining Custom Tools
+
+While LangChain provides a range of built-in tools, the true power lies in the ability to create custom tools tailored to your specific needs. This allows you to connect your LLM Agent to any database, API, or function you require.
+
+## Creating a Custom Tool Using the `tool` Decorator
+
+```python
+from langchain.agents import tool
+from datetime import date
+
+@tool
+def time(text: str) -> str:
+    """Returns todays date, use this for any
+    questions related to knowing todays date.
+    The input should always be an empty string,
+    and this function will always return todays
+    date - any date mathmatics should occur
+    outside this function."""
+    return str(date.today())
+```
+
+In this code snippet, we're creating a custom tool called `time` using the `tool` decorator from LangChain. This tool returns the current date whenever called, and its behavior is defined in the docstring.
+
+## Integrating the Custom Tool with the Agent
+
+After defining our custom `time` tool, we need to integrate it with our LLM Agent. We do this by adding the `time` tool to the list of tools when creating the `create_react_agent` and `AgentExecutor`.
+
+```python
+agent = create_react_agent(llm=llm, tools=tools + [time], prompt=prompt)
+agent_executor = AgentExecutor(
+    agent=agent,
+    tools=tools + [time],
+    features="html.parser",
+    handle_parsing_errors=True,
+    verbose=True,
+)
+```
+
+Now, our LLM Agent is equipped with the `time` tool alongside the other built-in tools we've loaded previously.
+
+To see our custom tool in action, we can ask the agent a question related to the current date:
+
+```python
+try:
+    agent_executor.invoke({"input": "whats the date today?"})
+except:
+    print("exception on external access")
+```
+
+```plaintext
+> Entering new AgentExecutor chain...
+Action: time
+Action Input: ""
+2024-05-11
+Final Answer: 2024-05-11
+
+> Finished chain.
+```
+
+As you can see, the agent recognized that it needed to use the `time` tool to retrieve the current date, and it provided the correct answer without any additional prompting.
+
+This example demonstrates the usefulness of custom tools in LangChain's Agents. By creating your own tools, you can connect your LLM Agent to any data source, API, or function you require, extending its capabilities to suit your specific needs.
+
+# Conclusion
+
+LangChain's Agents have revolutionized the way we think about large language models. By combining the LLMs with external tools and data sources, this framework empowers us to tackle complex reasoning tasks and make informed decisions. Whether you use built-in tools like DuckDuckGo Search and Wikipedia or create custom tools tailored to your specific needs, LangChain's Agents offer a flexible and extensible solution for integrating LLMs into your applications.
+
+# Source Code
+
+[https://github.com/RutamBhagat/LangChainHCCourse1/blob/main/course\_1/agents.ipynb](https://github.com/RutamBhagat/LangChainHCCourse1/blob/main/course_1/agents.ipynb)

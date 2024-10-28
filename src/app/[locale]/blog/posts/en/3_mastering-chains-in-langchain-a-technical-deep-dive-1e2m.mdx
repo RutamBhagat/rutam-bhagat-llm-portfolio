@@ -1,0 +1,67 @@
+---
+title: "Chains: creating sequences of operations"
+publishedAt: "25/03/2024, 07:16 am"
+---
+
+![Chains: creating sequences of operations](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/kb0ccipkyfmzagjexgqu.jpg)
+
+As a developer working with natural language processing (NLP) and language models, you've probably heard about LangChain - the powerful Python library that simplifies the process of building applications with large language models (LLMs). One of the core concepts in LangChain is the idea of "chains," which allow you to combine LLMs with prompts and other components to create complex, multi-step language processing workflows.
+
+In this technical deep dive, we'll explore the different types of chains offered by LangChain and how you can leverage them to build sophisticated language AI applications. So, buckle up and get ready to see the full potential of LangChain's chain capabilities! 
+
+##The LLMChain
+
+At the Foundation of LangChain lies the LLMChain, which serves as the building block for more complex chains. An LLMChain combines an LLM (Large Language Model) with a prompt template. Here's an example:
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/qm8elnqnqkcfljjf925t.jpg)
+
+In this code snippet, we initialize an LLM (ChatOpenAI), create a prompt template, and then combine them into an LLMChain. When we run this chain with a product input, it generates a company name suggestion tailored to that product.
+
+##Sequential Chains
+
+ Chaining Tasks Together, While the LLMChain is powerful on its own, LangChain really shines when you start combining multiple chains to perform complex tasks. Enter: Sequential Chains. These chains allow you to run a sequence of chains, where the output of one chain becomes the input for the next.
+
+LangChain offers two types of Sequential Chains: SimpleSequentialChain and SequentialChain. 
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/1npwx9rwx2a5b7n7mna6.jpg)
+
+##SimpleSequentialChain
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/xsjzwa7a9kpyxeut7xxd.jpg)
+
+The former is suitable when each chain has a single input and a single output, while the latter is more flexible, allowing you to handle multiple inputs and outputs.
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/ekuzdgr0p13ag29jru16.jpg)
+
+In the example above, we create two LLMChains: one for generating a company name, and another for creating a 20-word description based on that name. We then combine them into a SimpleSequentialChain, allowing us to run both tasks seamlessly, one after the other.
+
+##SequentialChain
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/2h71a5rbxvgx0lwqloht.jpg)
+
+While the SimpleSequentialChain works well when there's only a single input and a single output, LangChain's SequentialChain allows you to handle multiple inputs and outputs seamlessly. This chain is perfect for complex, multi-step language processing tasks.
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/8e271bfi1djmc2ba588v.jpg)
+
+ In this example, we create four separate chains, each with its own input and output variables. The first chain translates a review to English, the second summarizes the English review, the third detects the language of the original review, and the fourth generates a follow-up response based on the summary and language.
+
+Notice how the input and output keys (output_key and input_variables) are carefully aligned to ensure that the output of one chain is correctly passed as input to the next chain.
+
+The SequentialChain allows you to combine these individual chains into a single, multi-step workflow. When you run the overall_chain with a review input, it will execute each chain in sequence, passing the outputs from one chain to the next, until the final output (English_Review, summary, and followup_message) is generated.
+
+With SequentialChain, you can create complex language processing pipelines, breaking down intricate tasks into smaller, manageable steps and chaining them together seamlessly. 
+
+##Router Chains
+
+Intelligent Input Routing Now, let's take things a step further with Router Chains. Imagine you have multiple specialized chains, each designed to handle a specific type of input or task. Router Chains act as the traffic controller, routing your input to the most appropriate chain based on predefined criteria.
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/acz8hx1cqmw7j79228hl.jpg)
+
+ In this example, we define multiple destination chains, each specialized for a different subject (physics, math, history, computer science). We then create a router chain that uses an LLM to determine which destination chain is most suitable for a given input. The MultiPromptChain ties everything together, routing the input to the appropriate destination chain or falling back to a default chain if none of the specialized chains are a good match.
+
+With Router Chains, you can create highly specialized language AI applications tailored to your specific needs, ensuring that every input is handled by the most appropriate chain for the job. 
+
+##Conclusion
+LangChain's chain capabilities open up a world of possibilities for building complex language AI applications. Whether you're creating simple LLMChains, chaining tasks together with Sequential Chains, or routing inputs intelligently with Router Chains, LangChain provides a flexible framework for working with large language models.

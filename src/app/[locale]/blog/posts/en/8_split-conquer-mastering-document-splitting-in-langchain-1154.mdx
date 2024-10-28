@@ -1,0 +1,169 @@
+---
+title: "Document Splitting: Discover the best practices and considerations for splitting data"
+publishedAt: "25/03/2024, 07:50 am"
+---
+
+![Document Splitting: Discover the best practices and considerations for splitting data](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/zyfp98ha48bm6djrkm1i.jpg)
+
+ Have you ever wondered how Large Language Models can understand and process large amounts of information? The secret lies in an important step: Document Splitting. It's where a massive document is seamlessly split into small meaningful chunks, ready for the AI to read and comprehend.
+
+I can't stress enough the importance of proper document splitting. It's not just about breaking things apart; it's a delicate art that can make or break your AI's performance. And trust me, you don't want to end up with a jumbled mess of disconnected thoughts and gibberish.
+
+In this blog post, I'll walk you through the world of document splitting, revealing the techniques, challenges, and best practices that will allow you to use all the features of your language models.
+
+##Laying the Foundation: Why Document Splitting Matters 
+
+ Let's start with a simple example. Imagine trying to understand the specifications of a Toyota Camry by reading a sentence that's been split right in the middle, with half of the details in one chunk and the other half in another. Confusing, right? Well, that's precisely what can happen if you don't split your documents correctly.
+
+Proper document splitting ensures that semantically related content stays together, allowing your language model to grasp the full context and meaning. It's like giving your AI a complete puzzle instead of randomly scattered pieces. 
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/d2iv9hgpub658h3npql6.png)
+
+##Diving into LangChain's Text Splitters
+
+ LangChain is a toolkit for working with language models. LangChain offers a variety of text splitters, each with its own unique approach to breaking down documents.
+
+At the core of these splitters lies the concept of chunk size and chunk overlap. Chunk size determines the maximum length of each split, while chunk overlap creates a sliding window effect, ensuring that related content spans across multiple chunks for better context preservation. 
+
+```
+from langchain.text_splitter import RecursiveCharacterTextSplitter, CharacterTextSplitter
+
+chunk_size = 26
+chunk_overlap = 4
+
+r_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+c_splitter = CharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+```
+But wait, there's more! LangChain's text splitters come in various types, each useful for different needs and document types.
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/ovl7zt5726us5okzalir.png)
+
+##Character-based Splitting: The Building Blocks
+
+The RecursiveCharacterTextSplitter and CharacterTextSplitter are two most used text splitters in the character-based splitting domain. These splitters break down documents based on character counts and separators like newlines and spaces.
+
+```
+text1 = 'abcdefghijklmnopqrstuvwxyz'
+print(r_splitter.split_text(text1))  # Output: ['abcdefghijklmnopqrstuvwxyz']
+
+text2 = 'abcdefghijklmnopqrstuvwxyzabcdefg'
+print(r_splitter.split_text(text2))  # Output: ['abcdefghijklmnopqrstuvwxyz', 'wxyzabcdefg']
+```
+As you can see, the RecursiveCharacterTextSplitter intelligently handles text splitting based on the specified chunk size and overlap. But what about separators like spaces and newlines? CharacterTextSplitter has got you covered!
+
+```
+c_splitter = CharacterTextSplitter(
+    chunk_size=chunk_size,
+    chunk_overlap=chunk_overlap,
+    separator = ' '
+)
+text3 = "a b c d e f g h i j k l m n o p q r s t u v w x y z"
+print(c_splitter.split_text(text3))  # Output: ['a b c d e f g h i j k l m', 'l m n o p q r s t u v w x', 'w x y z']
+```
+ By specifying the separator (in this case, a space), the CharacterTextSplitter seamlessly splits the text while preserving the meaning and context.
+
+But what about real-world scenarios? I've got you covered! Let's explore how these splitters handle a PDF document and a Notion database: 
+
+```
+from langchain.document_loaders import PyPDFLoader, NotionDirectoryLoader
+
+# Load a PDF document
+loader = PyPDFLoader("docs/cs229_lectures/MachineLearning-Lecture01.pdf")
+pages = loader.load()
+
+# Split the PDF into chunks
+text_splitter = CharacterTextSplitter(separator="\n", chunk_size=1000, chunk_overlap=150)
+docs = text_splitter.split_documents(pages)
+print(len(docs))  # Output: 77
+print(len(pages))  # Output: 22
+
+# Load a Notion database
+loader = NotionDirectoryLoader("docs/Notion_DB")
+notion_db = loader.load()
+
+# Split the Notion database into chunks
+docs = text_splitter.split_documents(notion_db)
+print(len(notion_db))  # Output: 52
+print(len(docs))  # Output: 353
+```
+As you can see, the CharacterTextSplitter splits complex documents like PDFs and Notion databases into manageable chunks, preserving the structure and context along the way.
+
+##Token-based Splitting: Aligning with LLM Context Windows
+
+While character-based splitting is fantastic, there's another approach that aligns more closely with how large language models operate: token-based splitting. LLMs often have context windows designated by token counts, and the TokenTextSplitter helps us split documents accordingly.
+
+```
+from langchain.text_splitter import TokenTextSplitter
+
+text_splitter = TokenTextSplitter(chunk_size=1, chunk_overlap=0)
+text1 = "foo bar bazzyfoo"
+print(text_splitter.split_text(text1))  # Output: ['foo', ' bar', ' b', 'az', 'zy', 'foo']
+```
+By splitting text into individual tokens, we can better understand how an LLM would perceive and process the information. This is particularly useful when working with context windows and ensuring that our chunks align with the LLM's capabilities.
+
+```
+text_splitter = TokenTextSplitter(chunk_size=10, chunk_overlap=0)
+docs = text_splitter.split_documents(pages)
+print(docs[0])  # Output: Document(page_content='MachineLearning-Lecture01  \n', metadata={'source': 'docs/cs229_lectures/MachineLearning-Lecture01.pdf', 'page': 0})
+```
+As you can see, the TokenTextSplitter preserves important metadata, such as the source document and page number, ensuring that you have all the context you need when working with the resulting chunks.
+
+##Context-aware Splitting: Preserving Document Structure
+
+ While character-based and token-based splitting are useful tools, there's another level of sophistication that LangChain offers: context-aware splitting. This approach takes into account the structure of your documents, such as headers and subheaders, ensuring that semantically related content stays together.
+
+MarkdownHeaderTextSplitter is a splitter designed specifically for Markdown files. It splits the document based on headers and subheaders, preserving the hierarchical structure and metadata in the resulting chunks. 
+
+```
+from langchain.text_splitter import MarkdownHeaderTextSplitter
+
+markdown_document = """# Title\n\n
+## Chapter 1\n\n
+Hi this is Jim\n\n Hi this is Joe\n\n
+### Section \n\n
+Hi this is Lance \n\n
+## Chapter 2\n\n
+Hi this is Molly"""
+
+headers_to_split_on = [
+    ("#", "Header 1"),
+    ("##", "Header 2"),
+    ("###", "Header 3"),
+]
+
+markdown_splitter = MarkdownHeaderTextSplitter(headers_to_split_on=headers_to_split_on)
+md_header_splits = markdown_splitter.split_text(markdown_document)
+
+print(md_header_splits[0])  # Output: Document(page_content='Hi this is Jim  \nHi this is Joe', metadata={'Header 1': 'Title', 'Header 2': 'Chapter 1'})
+print(md_header_splits[1])  # Output: Document(page_content='Hi this is Lance', metadata={'Header 1': 'Title', 'Header 2': 'Chapter 1', 'Header 3': 'Section'})
+```
+ As you can see, the MarkdownHeaderTextSplitter not only splits the document based on headers but also preserves the header information in the metadata of each resulting chunk. This contextual information can be invaluable when working with language models, as it provides a deeper understanding of the content and its structure.
+
+But wait, there's more! Let's put the MarkdownHeaderTextSplitter to the test with a real-world example, like a Notion database: 
+
+```
+from langchain.document_loaders import NotionDirectoryLoader
+
+loader = NotionDirectoryLoader("docs/Notion_DB")
+docs = loader.load()
+txt = ' '.join([d.page_content for d in docs])
+
+headers_to_split_on = [
+    ("#", "Header 1"),
+    ("##", "Header 2"),
+]
+markdown_splitter = MarkdownHeaderTextSplitter(headers_to_split_on=headers_to_split_on)
+md_header_splits = markdown_splitter.split_text(txt)
+
+print(md_header_splits[0])
+# Output: Document(page_content="This is a living document with everything we've learned ... made public.", metadata={'Header 1': "Blendle's Employee Handbook"})
+```
+As you can see, the MarkdownHeaderTextSplitter easily splits the Notion database into meaningful chunks, preserving the header information in the metadata. This level of context preservation is invaluable when working with language models, as it ensures that the model can understand the content's structure and hierarchy.
+
+##Conclusion
+
+ Document splitting is a crucial step that can make or break your model's performance. By splitting documents into semantically relevant, context-rich chunks, you're giving your language model the building blocks it needs to truly understand and process information.
+
+Whether you're working with character-based, token-based, or context-aware splitting techniques, LangChain provides a useful toolkit to tackle this challenge. 

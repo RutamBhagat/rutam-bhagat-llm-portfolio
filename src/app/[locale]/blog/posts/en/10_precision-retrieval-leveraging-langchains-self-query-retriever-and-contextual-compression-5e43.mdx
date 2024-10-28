@@ -1,0 +1,211 @@
+---
+title: "Retrieval: Grasp advanced techniques for accessing and indexing data in the vector store"
+publishedAt: "26/03/2024, 04:57 pm"
+---
+
+![Retrieval: Grasp advanced techniques for accessing and indexing data in the vector store](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/1k1vhu6131u72ima5g25.jpg)
+
+Have you ever found yourself stuck in tons of data, and struggled to find the most relevant and accurate data for your machine learning projects? As data continues to grow exponentially, efficient and precise document retrieval has become a most important component of modern AI systems. In this blog post, we'll dive deep into the advanced retrieval techniques offered by LangChain, to streamline and optimize your document search processes.
+
+We will go through Maximum Marginal Relevance (MMR), Self-Query Retriever, and Contextual Compression. Trust me, these techniques will change the way you search, filter, and extract the most relevant information for your projects.
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/dobobxuiujqdqo2qnnza.png)
+
+
+
+## Semantic Similarity Search Revisited:
+
+Before we dive into the advanced techniques, let's quickly revisit the concept of semantic similarity search, which we covered in previous lessons. This method allows you to retrieve documents based on their semantic similarity to a given query. While this approach works well for many use cases, we also encountered some edge cases where it fell short, particularly when it came to ensuring diversity and specificity in the search results.
+
+## Maximum Marginal Relevance (MMR)
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/zj8rbnb60xeeksa0fht3.png)
+
+
+
+
+
+Ever found yourself in a situation where the most semantically similar documents didn't provide the full picture? That's where MMR comes into the picture. This technique maintains the perfect balance between relevance and diversity in your search results.
+
+Imagine you're a chef researching all-white mushrooms with large fruiting bodies. A simple semantic search might return documents focusing solely on the physical characteristics, but MMR ensures you also get information about crucial details like potential toxicity. Talk about a lifesaver!
+
+Implementing MMR in LangChain is a breeze. With just a few lines of code, you can set the "fetch\_k" parameter to determine the initial number of semantically similar responses, and then optimize for diversity by selecting the final "k" documents to return.
+
+```python
+from langchain.vectorstores import Chroma
+
+from langchain.embeddings.openai import OpenAIEmbeddings
+
+persist_directory = 'docs/chroma/'
+
+embedding = OpenAIEmbeddings()
+
+vectordb = Chroma(
+    persist_directory=persist_directory,
+    embedding_function=embedding
+)
+
+print(vectordb._collection.count())
+
+209
+
+texts = [
+    """The Amanita phalloides has a large and imposing epigeous (aboveground) fruiting body (basidiocarp).""",
+    """A mushroom with a large fruiting body is the Amanita phalloides. Some varieties are all-white.""",
+    """A. phalloides, a.k.a Death Cap, is one of the most poisonous of all known mushrooms.""",
+]
+smalldb = Chroma.from_texts(texts, embedding=embedding)
+question = "Tell me about all-white mushrooms with large fruiting bodies"
+smalldb.similarity_search(question, k=2)
+# Output: [Document(page_content='A mushroom with a large fruiting body is the Amanita phalloides. Some varieties are all-white.', metadata={}),
+# Document(page_content='The Amanita phalloides has a large and imposing epigeous (aboveground) fruiting body (basidiocarp).', metadata={})]
+
+smalldb.max_marginal_relevance_search(question,k=2, fetch_k=3)
+# Output: [Document(page_content='A mushroom with a large fruiting body is the Amanita phalloides. Some varieties are all-white.', metadata={}),
+# Document(page_content='A. phalloides, a.k.a Death Cap, is one of the most poisonous of all known mushrooms.', metadata={})]
+```
+
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/7gcc99aufhhihwfy4qm7.png)
+
+
+
+
+
+The result? A diverse set of documents covering all the essential details you need, without sacrificing relevance. Pretty nifty, right?
+
+## Mastering the Self-Query Retriever:
+
+Now, let's tackle a different challenge: what if your query involves filtering based on metadata? For instance, you might want to know what was said about regression in the third lecture of a machine learning course. A simple semantic search might return results from other lectures as well, but the Self-Query Retriever has your back.
+
+This technique uses language models to infer the semantic query and the necessary metadata filter directly from your input question. It's like having a personal assistant who understands exactly what you're looking for!
+
+Setting up the Self-Query Retriever in LangChain is a breeze. You define the metadata fields and their descriptions, initialize the language model, and let the retriever work its magic. Here's an example
+
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/gk2latpus2wxtkqbhikp.png)
+
+
+
+
+
+```python
+metadata_field_info = [
+    AttributeInfo(
+        name="source",
+        description="The lecture the chunk is from, should be one of `docs/cs229_lectures/MachineLearning-Lecture01.pdf`, `docs/cs229_lectures/MachineLearning-Lecture02.pdf`, or `docs/cs229_lectures/MachineLearning-Lecture03.pdf`",
+        type="string",
+    ),
+    AttributeInfo(
+        name="page",
+        description="The page from the lecture",
+        type="integer",
+    ),
+]
+document_content_description = "Lecture notes"
+llm = OpenAI(model='gpt-3.5-turbo-instruct', temperature=0)
+retriever = SelfQueryRetriever.from_llm(
+    llm,
+    vectordb,
+    document_content_description,
+    metadata_field_info,
+    verbose=True
+)
+
+question = "what did they say about regression in the third lecture?"
+docs = retriever.get_relevant_documents(question)
+for d in docs:
+    print(d.metadata)
+# {'source': 'docs/cs229_lectures/MachineLearning-Lecture03.pdf', 'page': 14}
+# {'source': 'docs/cs229_lectures/MachineLearning-Lecture03.pdf', 'page': 0}
+# {'source': 'docs/cs229_lectures/MachineLearning-Lecture03.pdf', 'page': 10}
+# {'source': 'docs/cs229_lectures/MachineLearning-Lecture03.pdf', 'page': 10}
+```
+
+With just a few lines of code, you'll get precisely the documents you need from the third lecture, filtered based on the metadata. No more sifting through irrelevant results!
+
+## Contextual Compression
+
+Ever felt like the retrieved documents contained too much irrelevant information, making it challenging to pinpoint the most crucial details? Use Contextual Compression, a technique that extracts only the most relevant segments from the retrieved passages.
+
+Imagine asking about MATLAB in a machine learning course, and instead of getting the entire lecture transcript, you receive only the most pertinent snippets. This not only saves you time and effort but also ensures that your final output is laser-focused on the information you need.
+
+Implementing Contextual Compression in LangChain is a breeze, thanks to the `ContextualCompressionRetriever` and `LLMChainExtractor`. You can even combine it with other techniques like MMR for optimal results:
+
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/j58hobavm3xznnxf6emo.png)
+
+
+
+
+
+```python
+from langchain.retrievers import ContextualCompressionRetriever
+from langchain.retrievers.document_compressors import LLMChainExtractor
+
+def pretty_print_docs(docs):
+    print(f"\n{'-' * 100}\n".join([f"Document {i+1}:\n\n" + d.page_content for i, d in enumerate(docs)]))
+
+# Wrap our vectorstore
+llm = OpenAI(temperature=0, model="gpt-3.5-turbo-instruct")
+compressor = LLMChainExtractor.from_llm(llm)
+
+compression_retriever = ContextualCompressionRetriever(
+    base_compressor=compressor,
+    base_retriever=vectordb.as_retriever(search_type="mmr")
+)
+
+question = "what did they say about matlab?"
+compressed_docs = compression_retriever.get_relevant_documents(question)
+pretty_print_docs(compressed_docs)
+
+# Output:
+# Document 1:
+# 
+# - "those homeworks will be done in either MATLA B or in Octave"
+# - "I know some people call it a free ve rsion of MATLAB"
+# - "MATLAB is I guess part of the programming language that makes it very easy to write codes using matrices, to write code for numerical routines, to move data around, to plot data."
+# - "there's also a software package called Octave that you can download for free off the Internet."
+# - "it has somewhat fewer features than MATLAB, but it's free, and for the purposes of this class, it will work for just about everything."
+# - "once a colleague of mine at a different university, not at Stanford, actually teaches another machine learning course."
+# ----------------------------------------------------------------------------------------------------
+# Document 2:
+# 
+# - "those homeworks will be done in either MATLA B or in Octave"
+# - "I know some people call it a free ve rsion of MATLAB"
+# - "MATLAB is I guess part of the programming language that makes it very easy to write codes using matrices, to write code for numerical routines, to move data around, to plot data."
+# - "there's also a software package called Octave that you can download for free off the Internet."
+# - "it has somewhat fewer features than MATLAB, but it's free, and for the purposes of this class, it will work for just about everything."
+# - "once a colleague of mine at a different university, not at Stanford, actually teaches another machine learning course."
+```
+
+With Contextual Compression, you'll receive a filtered set of results, free from redundant information, and focused solely on the most relevant details.
+
+## Exploring Other Retrieval Techniques:
+
+While vector databases are a powerful tool for retrieval, LangChain offers additional techniques that leverage traditional NLP methods. For example, the SVM Retriever and TF-IDF Retriever provide alternative approaches to document retrieval, each with its own strengths and use cases.
+
+```python
+from langchain.retrievers import SVMRetriever
+from langchain.retrievers import TFIDFRetriever
+
+svm_retriever = SVMRetriever.from_texts(splits, embedding)
+tfidf_retriever = TFIDFRetriever.from_texts(splits)
+
+question = "What are major topics for this class?"
+docs_svm = svm_retriever.get_relevant_documents(question)
+docs_tfidf = tfidf_retriever.get_relevant_documents(question)
+```
+
+While these techniques may not always outperform vector databases, they offer alternative perspectives and can complement your existing retrieval strategies.
+
+## Conclusion:
+
+Phew, that was a lot. We covered a lot of ground, from Maximum Marginal Relevance and Self-Query Retriever to Contextual Compression and much more.
+
+By now, you should have a solid understanding of how these techniques can change your document search processes, ensuring you always have access to the most relevant and accurate information for your Langchain applications.

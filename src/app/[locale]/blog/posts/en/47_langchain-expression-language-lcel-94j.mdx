@@ -1,0 +1,293 @@
+---
+title: "LangChain Expression Language (LCEL)"
+publishedAt: "23/05/2024, 09:02 pm"
+---
+
+![LangChain Expression Language (LCEL)](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/ysbgm2cjzf9anku6v2je.png)
+
+In this post, we'll explore LangChain Expression Language (LCEL), a new way to build and connect LangChain components that makes it easier and more transparent to construct and compose language models (LLMs) and other components.
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/xh5lc7l2yo0rgojtpwog.png)
+
+
+
+LangChain is powerful because it lets you combine different parts, like language models, prompts, and output parsers, to create custom workflows. Now, with LCEL, we have a new way to do this. LCEL is a runnable protocol that defines a few key elements that make it work.
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/mnkz02z1zxm5oyug139j.png)
+
+
+
+First, LCEL defines what types of input it can work with. It also has a set of standard methods that you can use to customize your workflows. Plus, you can modify parameters in real-time, which gives you more flexibility. Finally, LCEL makes sure that all components work together seamlessly by using a common interface. In this post, we'll dive deeper into how LCEL works and what it means for LangChain users.
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/vw9e1s9bol6opieoctd0.png)
+
+
+
+## Simple Chain
+
+Let's start by setting up our environment and importing the necessary components:
+
+```python
+import os
+import openai
+from dotenv import load_dotenv, find_dotenv
+_ = load_dotenv(find_dotenv())  # read local .env file
+openai.api_key = os.environ['OPENAI_API_KEY']
+
+#!pip install pydantic==1.10.8
+
+from langchain.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
+from langchain.schema import StrOutputParser
+```
+
+We'll create a simple chain consisting of a prompt template, a language model, and an output parser. First, let's create a prompt template that asks the language model to tell a short joke about a specific topic:
+
+```python
+prompt = ChatPromptTemplate.from_template(
+    "tell me a short joke about {topic}"
+)
+model = ChatOpenAI()
+output_parser = StrOutputParser()
+```
+
+Now, we can create the chain by piping these components together:
+
+```python
+chain = prompt | model | output_parser
+```
+
+We can invoke this chain with some input and get a joke as output:
+
+```python
+chain.invoke({"topic": "Captain America"})
+# Output: 'Why did Captain America start a baking business? \nBecause he wanted to make super-soldiers!'
+```
+
+## More Complex Chain
+
+Let's create a slightly more complex chain that does retrieval-augmented generation. We'll replicate the process we covered in the previous blogs using LCEL.
+
+First, we need to set up our retriever:
+
+```python
+from langchain.vectorstores import DocArrayInMemorySearch
+from langchain_openai import OpenAIEmbeddings
+
+vectorstore = DocArrayInMemorySearch.from_texts(
+    ["harrison worked at kensho", "bears like to eat honey"],
+    embedding=OpenAIEmbeddings()
+)
+retriever = vectorstore.as_retriever()
+```
+
+We'll create a prompt that asks the language model to answer a question based on the provided context:
+
+```python
+template = """Answer the question based only on the following context:
+{context}
+
+Question: {question}
+"""
+prompt = ChatPromptTemplate.from_template(template)
+```
+
+To pass in the user's question and fetch relevant context, we'll use a `RunnableMap`:
+
+```python
+from langchain_core.runnables import RunnableMap
+
+chain = RunnableMap({
+    "context": lambda x: retriever.get_relevant_documents(x["question"]),
+    "question": lambda x: x["question"]
+}) | prompt | model | output_parser
+```
+
+Now, we can invoke this chain with a question, and it will retrieve relevant context, pass it to the prompt, and provide an answer:
+
+```python
+chain.invoke({"question": "where did harrison work?"})
+# Output: 'Harrison worked at Kensho.'
+```
+
+## Bind and OpenAI Functions
+
+LCEL allows us to bind parameters to runnables at runtime. For example, we can bind OpenAI functions to a language model:
+
+```python
+functions = [
+    {
+      "name": "weather_search",
+      "description": "Search for weather given an airport code",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "airport_code": {
+            "type": "string",
+            "description": "The airport code to get the weather for"
+          },
+        },
+        "required": ["airport_code"]
+      }
+    }
+  ]
+
+prompt = ChatPromptTemplate.from_messages([("human", "{input}")])
+model = ChatOpenAI(temperature=0).bind(functions=functions)
+runnable = prompt | model
+```
+
+We can then invoke this runnable, and the language model will call the bound function as needed:
+
+```python
+runnable.invoke({"input": "what is the weather in sf"})
+# Output: AIMessage(content='', additional_kwargs={'function_call': {'arguments': '{\"airport_code\":\"SFO\"}', 'name': 'weather_search'}}, ...)
+```
+
+We can also update the bound functions at runtime:
+
+```python
+functions.append({
+      "name": "sports_search",
+      "description": "Search for the news of recent sport events",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "team_name": {
+            "type": "string",
+            "description": "The sports team to search for"
+          },
+        },
+        "required": ["team_name"]
+      }
+    })
+
+model = model.bind(functions=functions)
+runnable = prompt | model
+runnable.invoke({"input": "how did the patriots do yesterday?"})
+# Output: AIMessage(content='', additional_kwargs={'function_call': {'arguments': '{\"team_name\":\"New England Patriots\"}', 'name': 'sports_search'}}, ...)
+```
+
+## Fallbacks
+
+One useful feature of LCEL is the ability to attach fallbacks to individual components or entire sequences. This can be useful when a component fails or doesn't produce the desired output.
+
+As an example, we'll use an older version of the OpenAI language model, which may struggle with outputting valid JSON:
+
+```python
+from langchain.llms import OpenAI
+import json
+
+simple_model = OpenAI(
+    temperature=0,
+    max_tokens=1000,
+    model="text-davinci-001"  # this is a deprecated model and hence will fail
+)
+simple_chain = simple_model | json.loads
+```
+
+We'll create a challenge that requires the model to output valid JSON:
+
+```python
+challenge = "write three poems in a json blob, where each poem is a json blob of a title, author, and first line"
+```
+
+If we try to invoke `simple_chain` with this challenge, we'll get an error because the model's output is not valid JSON:
+
+```python
+# Note: This will give an error saying model_not_found, which is expected
+print(simple_chain.invoke(challenge))
+# NotFoundError: Error code: 404 - {'error': {'message': 'The model `text-davinci-001` has been deprecated, learn more here: https://platform.openai.com/docs/deprecations', 'type': 'invalid_request_error', 'param': None, 'code': 'model_not_found'}}
+```
+
+To handle this, we can create a fallback chain using a newer model:
+
+```python
+model = ChatOpenAI(temperature=0)
+chain = model | StrOutputParser() | json.loads
+```
+
+Now, we can create a final chain that tries the first chain and falls back to the second if an error occurs:
+
+```python
+final_chain = simple_chain.with_fallbacks([chain])
+pprint(final_chain.invoke(challenge))
+# Output: {'poem1': {'author': 'Emily Dickinson',
+#                    'firstLine': 'A rose by any other name would smell as sweet',
+#                    'title': 'The Rose'},
+#          'poem2': {'author': 'Robert Frost',
+#                    'firstLine': 'Two roads diverged in a yellow wood',
+#                    'title': 'The Road Not Taken'},
+#          'poem3': {'author': 'Emily Dickinson',
+#                    'firstLine': 'Hope is the thing with feathers that perches in the soul',
+#                    'title': 'Hope is the Thing with Feathers'}}
+```
+
+## Interface
+
+LCEL defines a common interface for all runnables, with several methods and properties. Let's explore this interface using our initial simple chain:
+
+```python
+prompt = ChatPromptTemplate.from_template(
+    "Tell me a short joke about {topic}"
+)
+model = ChatOpenAI()
+output_parser = StrOutputParser()
+
+chain = prompt | model | output_parser
+```
+
+The methods available in the interface include:
+
+**invoke**: This is a synchronous method that calls the runnable on a single input.
+
+```python
+chain.invoke({"topic": "bears"})
+# Output: 'Why did the bear break up with his girlfriend? \nBecause she was unbearable!'
+```
+
+**batch**: This method calls the runnable on a list of inputs, executing them in parallel as much as possible.
+
+```python
+chain.batch([{"topic": "bears"}, {"topic": "frogs"}])
+# Output: ['Why do bears never wear socks? \nBecause they have bear feet!', 
+#          'Why are frogs so happy? Because they eat whatever bugs them!']
+```
+
+**stream**: This method calls the runnable on a single input and streams back responses.
+
+```python
+for t in chain.stream({"topic": "bears"}):
+    print(t)
+
+# Output:
+# Why
+# did
+# the
+# bear
+# ...
+```
+
+**ainvoke**: This is the asynchronous version of `invoke`.
+
+```python
+response = await chain.ainvoke({"topic": "bears"})
+print(response)
+# Output: "Why did the bear break up with his girlfriend? Because he couldn't bear the relationship anymore!"
+```
+
+All of these methods have corresponding asynchronous versions (`ainvoke`, `abatch`, `astream`).
+
+Additionally, all runnables have common properties like `input_schema` and `output_schema`, which define the expected input and output types.
+
+## Conclusion
+
+In this blog post, we introduced the LangChain Expression Language (LCEL), a new syntax that simplifies the process of constructing and composing language models and other components in LangChain. We explored simple and complex chains, binding parameters and functions, fallbacks, and the common interface exposed by all runnables.
+
+LCEL provides several benefits, including async, batch, and streaming support out of the box, the ability to attach fallbacks, parallelism for time-consuming tasks, and built-in logging. With LCEL, you can combine components in powerful ways, enabling you to build sophisticated language model applications.
+
+# Source Code
+
+[https://github.com/RutamBhagat/LangChainHCCourse3/blob/main/course\_3/LCEL.ipynb](https://github.com/RutamBhagat/LangChainHCCourse3/blob/main/course_3/LCEL.ipynb)

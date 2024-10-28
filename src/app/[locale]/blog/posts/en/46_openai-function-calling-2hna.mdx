@@ -1,0 +1,426 @@
+---
+title: "OpenAI: Function Calling"
+publishedAt: "20/05/2024, 10:31 pm"
+---
+
+![OpenAI: Function Calling](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/i7nqdd5ghkjepljq1b40.png)
+
+In this lesson, we will go over function calling, a new capability added to the OpenAI API a few months ago. We'll go over how exactly to use this, and some tips and tricks for getting best results.
+
+OpenAI has fine-tuned some of their most recent models to accept additional parameters for function calling. These models are fine-tuned to determine if it's relevant to call one of these functions, and if so, generate the appropriate arguments for the function call.
+
+In this lesson, we'll use the OpenAI SDK directly to understand this concept. To walk through this example we're going to imagine that we have a function that we think is interesting to provide to the language model. And we'll go over what interesting means later on, because there are a bunch of different use cases for this new parameter.
+
+### Defining the Example Function
+
+Here, we're going to define a `getCurrentWeather` function. This is an example from OpenAI themselves, when they first released this functionality. This is a good example to use because getting the current weather is something that the language model can't necessarily do by itself.
+
+And so, we often want to connect language models to functions that allow them to access external information.
+
+```python
+import json
+
+# Example dummy function hard coded to return the same weather 
+# In production, this could be your backend API or an external API
+def get_current_weather(location, unit="fahrenheit"):
+    """Get the current weather in a given location"""
+    weather_info = {
+        "location": location,
+        "temperature": "72",
+        "unit": unit, 
+        "forecast": ["sunny", "windy"],
+    }
+    return json.dumps(weather_info)
+```
+
+In this example, we hard code the information that's returned, but in production this could be hitting a weather API or some external source of knowledge.
+
+### Passing the Function to OpenAI
+
+OpenAI has exposed a new parameter called `functions` through which you can pass a list of function definitions.
+
+```python
+functions = [
+    {
+        "name": "get_current_weather",
+        "description": "Get the current weather in a given location",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "location": {
+                    "type": "string",
+                    "description": "The city and state, e.g. San Francisco, CA",
+                },
+                "unit": {"type": "string", "enum": ["celsius", "fahrenheit"]},
+            },
+            "required": ["location"],
+        },
+    }
+]
+```
+
+The full function definition for the above is shown in the code snippet. As you can see it's a list and then the element in the list (there's only one because we're only passing one function) is this JSON object with a few different parameters.
+
+You've got a `name` parameter, and this is the name of the function. You've then got a `description` parameter. And then, next you have this `parameters` object.
+
+In here, there are `properties`. `Properties` is itself another object, and we can see each of these elements has a `type`, like `string`, and then, a `description`. `Unit` is an enum, because we want it to be either Celsius or Fahrenheit. And so we can reflect that here.
+
+We can also convey that the only required parameter is `location`.
+
+The `description` is what we're going to pass directly to the language model, and so, the language model will use these descriptions to determine whether to call a function or how to call a function. Any information you want the language model to have in order to determine whether to call a function or how to call a function should be in the description here or here.
+
+### Calling the OpenAI API
+
+Let's then import the OpenAI SDK and call the chat completion endpoint.
+
+```python
+import os
+from openai import OpenAI
+
+from dotenv import load_dotenv, find_dotenv
+_ = load_dotenv(find_dotenv()) # read local .env file
+client = OpenAI(
+    api_key=os.environ['OPENAI_API_KEY']
+)
+
+messages = [
+    {
+        "role": "user", 
+        "content": "What's the weather like in Boston?"
+    }
+]
+
+response = client.chat.completions.create(
+    model="gpt-3.5-turbo-0613",
+    messages=messages,
+    functions=functions
+)
+```
+
+First, we're going to specify the model. We're going to make sure to specify one of the more recent ones that has this capability.
+
+Next, we're going to pass in our messages defined above.
+
+Let's run this and see what we get.
+
+### Analyzing the Response
+
+```python
+print(response)
+# ChatCompletion(id='chatcmpl-9MzyW2bFltYWABYOb3EHCedPyoBuN', choices=[Choice(finish_reason='function_call', index=0, logprobs=None, message=ChatCompletionMessage(content=None, role='assistant', function_call=FunctionCall(arguments='{\n  "location": "Boston, MA"\n}', name='get_current_weather'), tool_calls=None))], created=1715268476, model='gpt-3.5-turbo-0613', object='chat.completion', system_fingerprint=None, usage=CompletionUsage(completion_tokens=18, prompt_tokens=82, total_tokens=100))
+```
+
+Let's look at the full response. We can see that the message we get back has role of `assistant`, has `null` for `content`, and instead has this `function_call` parameter which has two objects, `name` and `arguments`.
+
+`Name` is `get_current_weather`. This is the same name as the function that we passed in, and then `arguments` is this JSON blob.
+
+```python
+response_message = response.choices[0].message
+print(response_message)
+# ChatCompletionMessage(content=None, role='assistant', function_call=FunctionCall(arguments='{\n  "location": "Boston, MA"\n}', name='get_current_weather'), tool_calls=None)
+```
+
+Let's take a closer look at the response message. Again, `content` is now empty. And `function_call` is this dictionary.
+
+```python
+args = json.loads(response_message.function_call.arguments)
+print(args)
+# {'location': 'Boston, MA'}
+```
+
+The `arguments` parameter in `function_call` is a JSON dictionary itself, so we can use `json.loads` to load this into a Python dictionary.
+
+The arguments that it passed back can be directly passed into the function we defined earlier. However, OpenAI doesn't directly call the function. We still have to do that ourselves. Rather, it just tells us what function to call, that's the `name`, and what the arguments to that function should be.
+
+```python
+observation = get_current_weather(**args)
+print(observation)
+# '{"location": "Boston, MA", "temperature": "72", "unit": "fahrenheit", "forecast": ["sunny", "windy"]}'
+```
+
+It's also worth noting that although this is trained to return a JSON blob, it's actually not strictly enforced.
+
+What happens if the message that you pass in isn't related to the function at all?
+
+```python
+messages = [
+    {
+        "role": "user",
+        "content": "hi!",  
+    }
+]
+
+response = client.chat.completions.create(
+    model="gpt-3.5-turbo-0613",
+    messages=messages,
+    functions=functions
+)
+print(response.choices[0])
+# Choice(finish_reason='stop', index=0, logprobs=None, message=ChatCompletionMessage(content='Hello! How can I help you today?', role='assistant', function_call=None, tool_calls=None))
+print(response.choices[0].message.content)
+# 'Hello! How can I help you today?'
+```
+
+We can see that the message that's returned has `content` as normal, and it doesn't have that `function_call` parameter.
+
+What's going on under the hood is that the model is determining whether to use a function or not.
+
+### Function Calling Modes
+
+There are additional parameters that we can pass in to force the model to use or not to use a function. Let's take a look at those.
+
+That additional parameter is the `function_call` parameter. By default, it's set to `"auto"`. This means that the language model chooses whether or not to call a function. This is what we've been doing so far.
+
+```python
+messages = [
+    {
+        "role": "user",
+        "content": "What's the weather like in Boston?"
+    }
+]
+
+response = client.chat.completions.create(
+    model="gpt-3.5-turbo-0613", 
+    messages=messages,
+    functions=functions,
+    function_call="auto"  # This is the default
+)
+```
+
+As you can see, because we're using `"auto"` and we're letting the language model choose what to do, here it recognizes that it doesn't need to call the function and so it's responding as before with `role` and `content` only.
+
+There are two other modes for `function_call` that we can use. In the first mode, we can force it to call a function.
+
+```python
+response = client.chat.completions.create(
+    model="gpt-3.5-turbo-0613",
+    messages=messages, 
+    functions=functions,
+    function_call={"name": "get_current_weather"}
+)
+```
+
+This is good if we always want to return the function call, and we'll see some use cases for that later on in the lesson.
+
+Another mode for `function_call` that we can use is `"none"`. This forces the language model not to use any of the functions provided.
+
+```python
+response = client.chat.completions.create(
+    model="gpt-3.5-turbo-0613",
+    messages=messages,
+    functions=functions,
+    function_call="none"
+)
+```
+
+But what happens when the messages should call the `get_current_weather` function?
+
+```python
+messages = [
+    {
+        "role": "user",
+        "content": "What's the weather like in Boston?"
+    }
+]
+
+response = client.chat.completions.create(
+    model="gpt-3.5-turbo-0613",
+    messages=messages,
+    functions=functions,
+    function_call="none"
+)
+print(response)
+# {
+#   "id": "chatcmpl-9R1utw6AVCy0JxIsVWGVOeXX7hQQp",
+#   "object": "chat.completion",
+#   "created": 1716229251,
+#   "model": "gpt-3.5-turbo-0613",
+#   "choices": [
+#     {
+#       "index": 0,
+#       "message": {
+#         "role": "assistant",
+#         "content": "Give me a moment. I will check the current weather in Boston for you."
+#       },
+#       "logprobs": null,
+#       "finish_reason": "stop"
+#     }
+#   ],
+#   "usage": {
+#     "prompt_tokens": 82,
+#     "completion_tokens": 16,
+#     "total_tokens": 98
+#   },
+#   "system_fingerprint": null
+# }
+```
+
+It should call the `get_current_weather` function. But when we look at the output, we still see the usual `role` and `content`. That's because we're forcing it not to call the function.
+
+The final option for the `function_call` parameter is forcing it to call a function.
+
+```python
+response = client.chat.completions.create(
+    model="gpt-3.5-turbo-0613", 
+    messages=messages,
+    functions=functions,
+    function_call={"name": "get_current_weather"}
+)
+print(response)
+# {
+#   "id": "chatcmpl-9R1utXyGtjLeU9eSiDeDBkWF0hKiS",
+#   "object": "chat.completion",
+#   "created": 1716229251,
+#   "model": "gpt-3.5-turbo-0613",
+#   "choices": [
+#     {
+#       "index": 0,
+#       "message": {
+#         "role": "assistant",
+#         "content": null,
+#         "function_call": {
+#           "name": "get_current_weather",
+#           "arguments": "{\n  \"location\": \"San Francisco, CA\"\n}"
+#         }
+#       },
+#       "logprobs": null,
+#       "finish_reason": "stop"
+#     }
+#   ],
+#   "usage": {
+#     "prompt_tokens": 83,
+#     "completion_tokens": 12,
+#     "total_tokens": 95
+#   },
+#   "system_fingerprint": null
+# }
+```
+
+And if we look at the response we can see that in fact we do get this `function_call` object returned and it's got `name` `get_current_weather` with some arguments.
+
+Just for fun let's see what happens if we pass in a message that doesn't need to call the function but we force it to.
+
+```python
+messages = [
+    {
+        "role": "user",
+        "content": "Who is Donald Trump",
+    }
+]
+response = openai.ChatCompletion.create(
+    model="gpt-3.5-turbo-0613",
+    messages=messages,
+    functions=functions,
+    function_call={"name": "get_current_weather"},
+)
+print(response)
+# {
+#   "id": "chatcmpl-9R1yB4By0U9FjxbMgImeAo33jp9c9",
+#   "object": "chat.completion",
+#   "created": 1716229455,
+#   "model": "gpt-3.5-turbo-0613",
+#   "choices": [
+#     {
+#       "index": 0,
+#       "message": {
+#         "role": "assistant",
+#         "content": null,
+#         "function_call": {
+#           "name": "get_current_weather",
+#           "arguments": "{\n  \"location\": \"New York, NY\"\n}"
+#         }
+#       },
+#       "logprobs": null,
+#       "finish_reason": "stop"
+#     }
+#   ],
+#   "usage": {
+#     "prompt_tokens": 85,
+#     "completion_tokens": 12,
+#     "total_tokens": 97
+#   },
+#   "system_fingerprint": null
+# }
+```
+
+So here, it's making up arguments like "New York, NY" for the `get_current_weather` function, even though the prompt didn't ask for weather information.
+
+### Additional Considerations
+
+Some final things to note. First, the functions themselves and the descriptions count against the token usage limit that you pass to OpenAI.
+
+```python
+messages = [
+    {
+        "role": "user",
+        "content": "What's the weather like in Boston?"
+    }
+]
+
+response = client.chat.completions.create(
+    model="gpt-3.5-turbo-0613",
+    messages=messages
+)
+print(response.usage.prompt_tokens)  # 15 tokens
+
+response = client.chat.completions.create(
+    model="gpt-3.5-turbo-0613", 
+    messages=messages,
+    functions=functions
+)  
+print(response.usage.prompt_tokens)  # 82 tokens
+```
+
+If we remove `functions` and `function_call`, we can see that `prompt_tokens` goes down to 15. In this particular example, the function definition and the function description are taking up a lot of the tokens.
+
+This is important to note because OpenAI models have a token limit on them. And so, as you're constructing your messages to pass to OpenAI, you have to be mindful of the fact that the functions and descriptions are going to take up some of those tokens.
+
+Finally, let's now take a look at how you can pass some of these function calls and the results of actually doing the function calls back into the language model.
+
+This is important because oftentimes you want to use the language model to determine what function to call, then run that function, but then pass the function's result back into the language model to get a final response.
+
+```python
+messages = [
+    {
+        "role": "user",
+        "content": "What's the weather like in Boston?"
+    }
+]
+
+# We'll then take this message and we'll append it to our list of messages.
+response = client.chat.completions.create(
+    model="gpt-3.5-turbo-0613",
+    messages=messages, 
+    functions=functions
+)
+
+args = json.loads(response.choices[0].message.function_call.arguments)
+observation = get_current_weather(**args)
+
+# We can then simulate calling the getCurrentWeather function with the arguments that the language model provides.
+# Let's save this to a variable and then we can append a new message to the list representing the response from the function that we just called.
+messages.append({
+    # We do this with a new type of message. Notice that it has a role equal to "function". This is used to convey to the language model that it's the response of calling a function.
+    "role": "function",
+    # We also pass in the name, which is the name of the function, and a content variable, which we can set equal to observation, which we calculated above.
+    "name": "get_current_weather",
+    "content": observation  # We can set equal to observation, which we calculated above.
+})
+
+# If we then call the language model with this list of messages, we can see that the language model takes the response of the observation and converts it into a nice natural language response.
+response = client.chat.completions.create(
+    model="gpt-3.5-turbo-0613",
+    messages=messages,
+)
+
+print(response.choices[0].message.content)
+# The weather in Boston is currently sunny and windy with a temperature of 72\u00b0F.
+```
+
+# Conclusion
+
+That's all for this lesson where we introduced OpenAI function calling and how to use it with the OpenAI SDK directly. In the next blog, we're going to cover how to combine this with LangChain primitives and LCEL to make it easier and faster to use this functionality.
+
+# Source Code
+
+[https://github.com/RutamBhagat/LangChainHCCourse3/blob/main/course\_3/OpenAI\_Function\_Calling.ipynb](https://github.com/RutamBhagat/LangChainHCCourse3/blob/main/course_3/OpenAI_Function_Calling.ipynb)

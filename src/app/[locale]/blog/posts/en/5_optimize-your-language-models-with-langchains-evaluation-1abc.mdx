@@ -1,0 +1,151 @@
+---
+title: "Optimize Your Language Models with LangChain's Evaluation"
+publishedAt: "25/03/2024, 07:29 am"
+---
+
+![Optimize Your Language Models with LangChain's Evaluation](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/wwr4jr5ltap5hfwfyp2i.jpg)
+
+ Have you ever wondered how to truly gauge the accuracy of your language model-powered applications? Imagine being able to fine-tune and optimize these cutting-edge AI systems with precision, ensuring they deliver the best possible results. Well, In this blog post, we'll dive deep into the world of LLM evaluation.
+
+We'll cover everything from generating realistic test data points to leveraging the incredible power of language models themselves for evaluation tasks.
+
+##Evaluating LLM-based Applications
+
+Language models have emerged as game-changers, enabling a wide range of applications from question-answering systems to creative writing assistants. However, as these applications become more complex, evaluating their performance becomes increasingly crucial.
+
+Imagine you've developed a cutting-edge language model-powered application, but how can you be sure it's meeting your desired accuracy criteria? What if you decide to swap out the underlying LLM or tweak the retrieval strategy? How do you assess whether these changes are improving or degrading the overall performance?
+
+Enter the world of LLM evaluation, where we'll explore frameworks and tools to help you navigate these challenges effectively.
+
+```
+# Create our QandA application
+from langchain.chains import RetrievalQA
+from langchain.chat_models import ChatOpenAI
+from langchain.document_loaders import CSVLoader
+from langchain.indexes import VectorstoreIndexCreator
+from langchain.vectorstores import DocArrayInMemorySearch
+
+file = 'OutdoorClothingCatalog_1000.csv'
+loader = CSVLoader(file_path=file)
+data = loader.load()
+
+index = VectorstoreIndexCreator(
+    vectorstore_cls=DocArrayInMemorySearch
+).from_loaders([loader])
+
+llm = ChatOpenAI(temperature=0.0, model=llm_model)
+qa = RetrievalQA.from_chain_type(
+    llm=llm, 
+    chain_type="stuff", 
+    retriever=index.vectorstore.as_retriever(), 
+    verbose=True,
+    chain_type_kwargs={
+        "document_separator": "<<<<>>>>>"
+    }
+)
+
+``` 
+##Generating Realistic Test Data Points
+
+Before we can dive into evaluation, we need a solid foundation: realistic test data points. While manually crafting these examples is an option, it quickly becomes tedious and time-consuming. Fortunately, we can enlist the help of our trusty LLMs to automate this process.
+
+LangChain's QAGenerateChain is a powerful tool that generates question-answer pairs from your existing documents, leveraging the incredible natural language understanding capabilities of LLMs.
+
+```
+from langchain.evaluation.qa import QAGenerateChain
+
+example_gen_chain = QAGenerateChain.from_llm(ChatOpenAI(model=llm_model))
+new_examples = example_gen_chain.apply_and_parse([{"doc": t} for t in data[:5]])
+
+```
+With just a few lines of code, we can generate a wealth of realistic test examples, saving us countless hours of manual labor. But that's just the beginning!
+
+##Evaluating with LLM Assistance
+
+Now that we have our test data points, it's time to put our language model application to the test. Traditionally, this process involved manually inspecting each output, a painstaking and error-prone endeavor. However, LangChain introduces a game-changing approach: leveraging LLMs themselves for evaluation tasks.
+
+The QAEvalChain is a powerful tool that uses the natural language understanding capabilities of LLMs to grade predictions against ground truth answers. By comparing the semantic meaning rather than relying on exact string matching, it provides a more accurate and nuanced evaluation.
+
+```
+from langchain.evaluation.qa import QAEvalChain
+
+llm = ChatOpenAI(temperature=0, model=llm_model)
+eval_chain = QAEvalChain.from_llm(llm)
+graded_outputs = eval_chain.evaluate(examples, predictions)
+
+for i, eg in enumerate(examples):
+    print(f"Example {i}:")
+    print("Question: " + predictions[i]['query'])
+    print("Real Answer: " + predictions[i]['answer'])
+    print("Predicted Answer: " + predictions[i]['result']) 
+    print("Predicted Grade: " + graded_outputs[i]['text'])
+    print()
+
+```
+```
+Example 0:
+Question: Do the Cozy Comfort Pullover Set        have side pockets?
+Real Answer: Yes
+Predicted Answer: Yes, the Cozy Comfort Pullover Set has pull-on pants with side pockets.
+Predicted Grade: CORRECT
+
+Example 1:
+Question: What collection is the Ultra-Lofty         850 Stretch Down Hooded Jacket from?
+Real Answer: The DownTek collection
+Predicted Answer: The Ultra-Lofty 850 Stretch Down Hooded Jacket is from the DownTek collection.
+Predicted Grade: CORRECT
+
+Example 2:
+Question: What is the weight of each pair of Women's Campside Oxfords?
+Real Answer: The approximate weight of each pair of Women's Campside Oxfords is 1 lb. 1 oz.
+Predicted Answer: The weight of each pair of Women's Campside Oxfords is approximately 1 lb. 1 oz.
+Predicted Grade: CORRECT
+
+Example 3:
+Question: What materials are used to construct the Recycled Waterhog dog mat?
+Real Answer: The Recycled Waterhog dog mat is constructed from 24 oz. polyester fabric made from 94% recycled materials, with a rubber backing.
+Predicted Answer: The Recycled Waterhog dog mat is constructed from 24 oz. polyester fabric made from 94% recycled materials and has a rubber backing.
+Predicted Grade: CORRECT
+
+Example 4:
+Question: What are some features of the Infant and Toddler Girls' Coastal Chill Swimsuit?
+Real Answer: The swimsuit has bright colors, ruffles, and exclusive whimsical prints. The four-way-stretch and chlorine-resistant fabric keeps its shape and resists snags. The UPF 50+ rated fabric provides the highest rated sun protection possible, blocking 98% of the sun's harmful rays. The crossover no-slip straps and fully lined bottom ensure a secure fit and maximum coverage. It is also machine washable and should be line dried for best results.
+Predicted Answer: The Infant and Toddler Girls' Coastal Chill Swimsuit is a two-piece swimsuit with bright colors, ruffles, and exclusive whimsical prints. It is made of four-way-stretch and chlorine-resistant fabric that keeps its shape and resists snags. The swimsuit has UPF 50+ rated fabric that provides the highest rated sun protection possible, blocking 98% of the sun's harmful rays. The crossover no-slip straps and fully lined bottom ensure a secure fit and maximum coverage. It is machine washable and should be line dried for best results.
+Predicted Grade: CORRECT
+
+Example 5:
+Question: What is the fabric composition of the Refresh Swimwear V-Neck Tankini Contrasts?
+Real Answer: The body of the swimwear is made up of 82% recycled nylon with 18% Lycra spandex, while the lining is made up of 90% recycled nylon with 10% Lycra spandex.
+Predicted Answer: The Refresh Swimwear V-Neck Tankini Contrasts is made of 82% recycled nylon with 18% Lycra® spandex for the body and 90% recycled nylon with 10% Lycra® spandex for the lining.
+Predicted Grade: CORRECT
+
+Example 6:
+Question: What is the new technology used in the EcoFlex 3L Storm Pants?
+Real Answer: The new technology used in the EcoFlex 3L Storm Pants is TEK O2, which offers the most breathability ever tested.
+Predicted Answer: The new technology used in the EcoFlex 3L Storm Pants is TEK O2 technology, which makes the pants more breathable and waterproof.
+Predicted Grade: CORRECT
+
+```
+With this approach, you can quickly and accurately evaluate your language model application's performance, enabling data-driven decision-making and continuous improvement.
+
+One of the biggest challenges in evaluating language model outputs lies in the inherent difficulty of string comparison. Unlike traditional software systems, language models generate open-ended text, making exact string matching an unreliable approach.
+
+##Challenges and Solutions in String Comparison
+
+Imagine a scenario where your language model outputs "The Cozy Comfort Pullover Set, Stripe does have side pockets," while the ground truth answer is simply "Yes." Conventional string comparison would deem these vastly different, despite conveying the same semantic meaning.
+
+This is where the true power of LLM-assisted evaluation shines. By leveraging the natural language understanding capabilities of LLMs, we can accurately compare the semantic similarity of outputs, transcending the limitations of exact string matching.
+
+```
+graded_outputs[0]
+```
+
+```
+{'text': 'CORRECT'}
+```
+
+##Conclusion
+
+Evaluation has emerged as a critical component for success of LLMs. By leveraging the power of LLMs themselves, you can streamline the evaluation process, generate realistic test data points, and accurately assess the performance of your applications.
+
+Whether you're fine-tuning an existing system or developing a cutting-edge language model solution, the techniques and tools we've explored in this blog post will enable you to make data-driven decisions and continuously optimize your applications.

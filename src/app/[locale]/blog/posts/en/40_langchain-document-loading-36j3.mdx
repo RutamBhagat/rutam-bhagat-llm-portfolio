@@ -1,0 +1,216 @@
+---
+title: "LangChain: Document Loading"
+publishedAt: "11/05/2024, 10:49 pm"
+---
+
+![LangChain: Document Loading](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/1fzn5jxvtlqrx0hd2uen.jpg)
+
+LangChain offers a robust set of document loaders that simplify the process of loading and standardizing data from diverse sources like PDFs, websites, YouTube videos, and proprietary databases like Notion. This blog post explores LangChain's document loading capabilities, covering various loader types, practical applications, and code examples, allowing you to integrate data into your machine learning workflows easily.
+
+## What are Document Loaders?
+
+Document loaders are fundamental building blocks of the LangChain ecosystem, responsible for the task of accessing and converting data from a wide range of formats and sources into a standardized format. Whether your data is in PDFs, websites, or proprietary databases, document loaders make it possible to load and work with it very easy.
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/3dh098rez4qre9d23ekl.png)
+
+
+
+The primary purpose of document loaders is to take this diverse array of data sources and load them into a standard document object, consisting of the content itself and associated metadata. By doing so, they provide a consistent interface for working with data, allowing you to focus on the more exciting aspects of building intelligent applications.
+
+## Types of Document Loaders
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/k9hsbkx03gqi3my1noiv.png)
+
+
+
+LangChain has an impressive collection of over 80 different types of document loaders, catering to a wide range of data sources and formats. Here's a high-level categorization to give you a an idea of the versatility of these loaders:
+
+**Loaders for Unstructured Data**: These loaders are designed to handle data in its raw, unstructured form, such as text files, public data sources like YouTube, Twitter, and Hacker News.
+
+```python
+#! pip install langchain
+# Loading data from a PDF
+from langchain.document_loaders import PyPDFLoader
+
+loader = PyPDFLoader("path/to/your/pdf_file.pdf")
+docs = loader.load()
+```
+
+**Loaders for Proprietary Data Sources**: If your organization relies on proprietary data sources like Figma or Notion, LangChain has got you covered with loaders specifically designed to handle these formats.
+
+```python
+# Loading data from Notion
+from langchain.document_loaders import NotionDirectoryLoader
+
+loader = NotionDirectoryLoader("path/to/notion/export")
+docs = loader.load()
+```
+
+**Loaders for Structured Data**: While LangChain is often associated with unstructured data, it also provides loaders for structured data sources like Airbyte, Stripe, and Airtable. This allows you to perform question answering and semantic search over the textual data contained within these structured formats.
+
+```python
+# Loading data from Airtable
+from langchain_community.document_loaders import AirtableLoader
+
+# Your airtable variables
+api_key = "xxx"
+base_id = "xxx"
+table_id = "xxx"
+
+loader = AirtableLoader(api_key, table_id, base_id)
+docs = loader.load()
+```
+
+## Using Document Loaders
+
+Now that we've covered the basics of document loaders and their types, let's dive into some practical examples of how to use them to load data from various sources.
+
+### Loading PDFs
+
+Let's start with a common scenario: loading data from a PDF file. Imagine you have a transcript from Andrew Ng's famous CS229 course, and you want to be able to ask questions about the content. Here's how you can achieve this using LangChain's PyPDF loader:
+
+```python
+from langchain.document_loaders import PyPDFLoader
+
+loader = PyPDFLoader("docs/cs229_lectures/MachineLearning-Lecture01.pdf")
+pages = loader.load()
+
+# Access the content of the first page
+page = pages[0]
+print(page.metadata)
+# Output
+# {'page': 0, 'source': 'docs/cs229_lectures/MachineLearning-Lecture01.pdf'}
+print(page.page_content[:500])
+```
+
+```plaintext
+MachineLearning-Lecture01  
+Instructor (Andrew Ng):  Okay. Good morning. Welcome to CS229, the machine 
+learning class. So what I wanna do today is ju st spend a little time going over the logistics 
+of the class, and then we'll start to  talk a bit about machine learning.  
+By way of introduction, my name's  Andrew Ng and I'll be instru ctor for this class. And so 
+I personally work in machine learning, and I' ve worked on it for about 15 years now, and 
+I actually think that machine learning is th e most exciting field of all the computer 
+sciences. So I'm actually always excited about  teaching this class. Sometimes I actually 
+think that machine learning is not only the most exciting thin g in computer science, but 
+the most exciting thing in all of human e ndeavor, so maybe a little bias there.
+```
+
+In this example, we loaded a PDF transcript into LangChain, which resulted in a list of `Document` objects, each representing a page of the PDF. We can then access the content and metadata of each page.
+
+### Loading YouTube Videos
+
+Imagine you're someone who loves attending online lectures and conferences. Wouldn't it be amazing if you could chat with the content of those YouTube videos? LangChain makes this possible by combining the `YoutubeAudioLoader` and `OpenAIWhisperParser` you can later load this data in a RAG application which we will explore in a later blog:
+
+```python
+# ! pip install yt_dlp
+# ! pip install pydub
+# ! pip install ffmpeg
+# ! pip install ffprobe
+
+from langchain.document_loaders.generic import GenericLoader
+from langchain.document_loaders.parsers import OpenAIWhisperParser
+from langchain.document_loaders.blob_loaders.youtube_audio import YoutubeAudioLoader
+
+url = "https://www.youtube.com/watch?v=jGwO_UgTS7I"
+save_dir = "docs/youtube/"
+
+loader = GenericLoader(YoutubeAudioLoader([url], save_dir), OpenAIWhisperParser())
+docs = loader.load()
+# [youtube] Extracting URL: https://www.youtube.com/watch?v=jGwO_UgTS7I
+# [youtube] jGwO_UgTS7I: Downloading webpage
+# [youtube] jGwO_UgTS7I: Downloading ios player API JSON
+# [youtube] jGwO_UgTS7I: Downloading android player API JSON
+# WARNING: [youtube] Skipping player responses from android clients (got player responses for video "aQvGIIdgFDM" instead of "jGwO_UgTS7I")
+# [youtube] jGwO_UgTS7I: Downloading m3u8 information
+# [info] jGwO_UgTS7I: Downloading 1 format(s): 140
+# [download] docs/youtube//Stanford CS229： Machine Learning Course, Lecture 1 - Andrew Ng (Autumn 2018).m4a has already been downloaded
+# [download] 100% of   69.76MiB
+# [ExtractAudio] Not converting audio docs/youtube//Stanford CS229： Machine Learning Course, Lecture 1 - Andrew Ng (Autumn 2018).m4a; file is already in target format m4a
+# Transcribing part 1!
+# Transcribing part 2!
+# Transcribing part 3!
+# Transcribing part 4!
+print(docs[0].page_content[:500])
+```
+
+```plaintext
+Welcome to CS229 Machine Learning. Uh, some of you know that this is a class that's taught at Stanford for a long time. And this is often the class that, um, I most look forward to teaching each year because this is where we've helped, I think, several generations of Stanford students become experts in machine learning, got- built many of their products and services and startups that I'm sure, many of you or probably all of you are using, uh, uh, today. Um, so what I want to do today was spend some time talking over, uh, logistics and then, uh, spend some time, you know, giving you a beginning of an intro, talk a little bit about machine learning. So about 229, um, you know, all of you have been reading about AI in the news, uh, about machine learning in the news. Um, and you've probably heard me or others say AI is the new electricity.
+```
+
+In this example, we loaded a YouTube video and transcribed its audio using OpenAI's Whisper model, making it possible to chat with the content of the video. Imagine being able to ask questions about Andrew Ng's lecture or any other educational video on YouTube!
+
+### Loading Websites
+
+The internet is full of information, and LangChain's web-based loader allows you to tap into this wealth of information. Let's say you come across an interesting GitHub repository with a README file you'd like to chat with:
+
+```python
+from langchain.document_loaders import WebBaseLoader
+
+loader = WebBaseLoader("https://raw.githubusercontent.com/RutamBhagat/code_wizard_frontend/main/README.md")
+docs = loader.load()
+
+print(docs[0].page_content[:500])
+```
+
+```plaintext
+# Code Wizard: LangChain Documentation AI Chatbot
+
+Code Wizard is a super cool AI chatbot that helps you learn and use the LangChain Documentation in an interactive way. Just ask it anything about LangChain concepts or code, and it'll break it down for you in an easy-to-understand way. Built with Next.js, FastAPI, LangChain, and a local LLaMA model.
+
+**Link to project:** https://code-wizard-frontend.vercel.app/
+
+
+https://github.com/RutamBhagat/code_wizard_frontend/assets/72187009/353ced90-f408-44ae-b633-c30f20dbd28f
+```
+
+In this example, we loaded the README file from the `code_wizard_frontend` GitHub repository using the `WebBaseLoader`. The loaded content is stored in a list of `Document` objects, and we can access the text content of the first document by printing `docs[0].page_content`.
+
+While the loaded content may contain some formatting or whitespace issues, this example demonstrates the versatility of LangChain in allowing you to load and work with data from various online sources.
+
+### Loading Data from Notion
+
+Notion has become a popular tool for personal and professional knowledge management, making it a valuable source of data for many users. LangChain's `NotionDirectoryLoader` enables you to load data from your Notion databases and work with it seamlessly.
+
+To get started, you'll need to export your Notion data in a compatible format. Here's an example of how to load data from a Notion database using LangChain:
+
+```python
+from langchain.document_loaders import NotionDirectoryLoader
+
+# Export your Notion data and save it in a directory
+loader = NotionDirectoryLoader("path/to/your/notion/export")
+docs = loader.load()
+
+# Print the content of the first document
+print(docs[0].metadata)
+# {'source': "docs/Notion_DB/Blendle's Employee Handbook e367aa77e225482c849111687e114a56.md"}
+print(docs[0].page_content[:500])
+```
+
+```plaintext
+# Blendle's Employee Handbook
+
+This is a living document with everything we've learned working with people while running a startup. And, of course, we continue to learn. Therefore it's a document that will continue to change. 
+
+**Everything related to working at Blendle and the people of Blendle, made public.**
+
+These are the lessons from three years of working with the people of Blendle. It contains everything from [how our leaders lead](https://www.notion.so/ecfb7e647136468a9a0a32f1771a8f52?pvs=21) to [how we increase salaries](https://www.notion.so/Salary-Review-e11b6161c6d34f5c9568bb3e83ed96b6?pvs=21), from [how we hire](https://www.notion.so/Hiring-451bbcfe8d9b49438c0633326bb7af0a?pvs=21) and [fire](https://www.notion.so/Firing-5567687a2000496b8412e53cd58eed9d?pvs=21) to [how we think people should give each other feedback](https://www.notion.so/Our-Feedback-Process-eb64f1de796b4350aeab3bc068e3801f?pvs=21) — and much more.
+```
+
+In this example, we exported data from a Notion database (Blendle's Employee Handbook) and loaded it into LangChain using the `NotionDirectoryLoader`. The loaded content is stored in a list of `Document` objects, and we can access the text content of the first document by printing `docs[0].page_content`.
+
+By using LangChain's document loaders, you can fully utilize your Notion databases and chat with them, allowing you to gain insights and make more informed decisions.
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/5cr13g5u4cyzu4jp0sue.png)
+
+
+
+## Conclusion
+
+LangChain's document loaders allow you to load data from diverse sources like PDFs, YouTube videos, websites, and proprietary databases, enabling you to build intelligent applications that truly understand and interact with your data. By simplifying data loading and standardization, these loaders fully utilize your data, allowing you to ask questions, get insights
+
+## Source Code
+https://github.com/RutamBhagat/LangChainHCCourse2/blob/main/course_2/document_loading.ipynb

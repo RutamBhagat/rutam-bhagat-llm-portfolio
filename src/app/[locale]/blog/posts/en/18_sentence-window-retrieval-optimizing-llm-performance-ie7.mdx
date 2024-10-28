@@ -1,0 +1,347 @@
+---
+title: "Sentence Window Retrieval: Optimizing LLM Performance"
+publishedAt: "04/04/2024, 05:38 pm"
+---
+
+![Sentence Window Retrieval: Optimizing LLM Performance](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/vt94qpc4czz9u45tnpoo.png)
+
+One of the Advanced RAG technique is Sentence Window Retrieval, it promises to change the way we approach information retrieval and synthesis. By decoupling the embedding and synthesis processes, this method offers a unique perspective on extracting relevant contextual information and generating comprehensive responses.
+
+In this blog post, I'll go through the inner workings of Sentence Window Retrieval. I'll explain its underlying principles, dive into the practical implementation details, and increase the performance of question-answering systems.
+
+# Introduction to Sentence Window Retrieval
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/lxflhglcjrms515s25ei.png)
+
+
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/ox95jb1nvx44rqxdt234.png)
+
+
+Imagine a scenario where you have a large collection of documents, and your goal is to find the most relevant information to answer a specific query. Traditional retrieval methods often rely on using the same text chunk for both embedding and synthesis, which can lead to suboptimal results.
+
+The key idea behind Sentence Window Retrieval is to separate the embedding and synthesis processes, allowing for more granular and targeted information retrieval. Instead of embedding and retrieving entire text chunks, this method focuses on individual sentences or smaller units of text. By embedding these smaller units and storing them in a vector database, we can perform more precise similarity searches to find the most relevant sentences for a given query.
+
+But wait, there's more! In addition to retrieving the relevant sentences, Sentence Window Retrieval also includes the surrounding context – the sentences that come before and after the target sentence. This expanded context window is then fed into the language model for synthesis, ensuring that the generated answer has the necessary context for coherence and completeness.
+
+Here's a code snippet that illustrates how to we set up the Sentence Window Node Parser:
+
+```python
+# create the sentence window node parser w/ default settings
+node_parser = SentenceWindowNodeParser.from_defaults(
+    window_size=3,
+    window_metadata_key="window",
+    original_text_metadata_key="original_text",
+)
+```
+
+This parser splits the input text into individual sentences and augments each sentence with its surrounding context, creating a "window" of relevant information.
+
+# Setting up Sentence Window Retrieval
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/zex13bvwxub5jw3oeakf.png)
+
+
+
+Before we dive into the nitty-gritty of Sentence Window Retrieval, let's set the stage by importing the required libraries and loading our input documents. In this example, I'll be using the "How to Build a Career in AI" eBook, but feel free to swap it out with your own PDF or set of documents.
+
+```python
+documents = SimpleDirectoryReader(
+    input_files=["./eBook-How-to-Build-a-Career-in-AI.pdf"]
+).load_data()
+```
+
+Next, we'll merge these individual documents into a single text object, as this can improve the overall text blending accuracy when using advanced retrievers.
+
+```python
+document = Document(text="\n\n".join([doc.text for doc in documents]))
+```
+
+Now, let's dive into the core of Sentence Window Retrieval: the SentenceWindowNodeParser. This parser is responsible for splitting the input text into individual sentences and augmenting each sentence with its surrounding context, creating a "window" of relevant information.
+
+```python
+node_parser = SentenceWindowNodeParser.from_defaults(
+    window_size=3,
+    window_metadata_key="window",
+    original_text_metadata_key="original_text",
+)
+```
+
+Here's a simple example to illustrate how the node parser works:
+
+```python
+text = "hello. how are you? I am fine!"
+nodes = node_parser.get_nodes_from_documents([Document(text=text)])
+print([x.text for x in nodes])
+# Output: ['hello. ', 'how are you? ', 'I am fine!  ']
+```
+
+As you can see, the input text is split into individual sentences, each represented as a separate node. But wait, there's more! Each node also contains metadata with the surrounding context, allowing the language model to synthesize a more coherent and informed response.
+
+# Building the Index
+
+With our input documents and SentenceWindowNodeParser in place, it's time to build the index. First, let's set up the language model we'll be using for synthesis. In this case, we'll be use OpenAI's GPT-3.5-turbo with a temperature of 0.1.
+
+```python
+llm = OpenAI(model="gpt-3.5-turbo", temperature=0.1)
+```
+
+Next, we'll define the ServiceContext object, which acts as a wrapper containing all the necessary components for indexing, including the language model, embedding model, and node parser.
+
+```python
+sentence_context = ServiceContext.from_defaults(
+    llm=llm,
+    embed_model="local:BAAI/bge-small-en-v1.5",
+    node_parser=node_parser,
+)
+```
+
+In this example, I am using the "bge-small-en-v1.5" embedding model, a compact, fast, and accurate option for its size. However, you can easily swap it out with other embedding models, such as the "bge-large-en-v1.5" model, based on your specific requirements.
+
+With the ServiceContext set up, let's create the VectorStoreIndex, which will embed the sentences with their surrounding context and load them into the vector store.
+
+```python
+sentence_index = VectorStoreIndex.from_documents(
+    [document], service_context=sentence_context
+)
+```
+
+To save time and computational resources, persist the index to disk, allowing us to load it later without rebuilding it from scratch.
+
+```python
+sentence_index.storage_context.persist(persist_dir="./sentence_index")
+```
+
+# Constructing the Query Engine
+
+With the index built and ready, it's time to construct the query engine. But before we do that, let's introduce two essential components: the Metadata Replacement Postprocessor and the Sentence Transformer Re-ranker.
+
+The Metadata Replacement Postprocessor is responsible for replacing the node text with the surrounding context stored in the metadata. This step is crucial as it ensures that the language model has access to the full context when synthesizing the final answer.
+
+```python
+postproc = MetadataReplacementPostProcessor(
+    target_metadata_key="window"
+)
+```
+
+Here's an example of how the postprocessor works:
+
+```python
+scored_nodes = [NodeWithScore(node=x, score=1.0) for x in nodes]
+nodes_old = [deepcopy(n) for n in nodes]
+print(nodes_old[1].text)
+# Output: 'foo bar. '
+
+replaced_nodes = postproc.postprocess_nodes(scored_nodes)
+print(replaced_nodes[1].text)
+# Output: 'hello.  foo bar.  cat dog.  mouse'
+```
+
+As you can see, the postprocessor replaced the original node text with the full surrounding context, ensuring that the language model has access to the necessary information for synthesis.
+
+# Sentence Transformer Re-ranker
+
+While the Metadata Replacement Postprocessor ensures that the language model has access to the full context, the Sentence Transformer Re-ranker takes things a step further by re-ordering the retrieved nodes based on their relevance to the query.
+
+```python
+rerank = SentenceTransformerRerank(
+    top_n=2, model="BAAI/bge-reranker-base"
+)
+```
+
+The `SentenceTransformerRerank` model is a specialized re-ranker based on the bge embeddings, designed to surface the most relevant pieces of information for a given query.
+
+Let's take a look at a simple example to understand how the re-ranker works its magic:
+
+```python
+query = QueryBundle("I want a dog.")
+
+scored_nodes = [
+    NodeWithScore(node=TextNode(text="This is a cat"), score=0.6),
+    NodeWithScore(node=TextNode(text="This is a dog"), score=0.4),
+]
+
+reranked_nodes = rerank.postprocess_nodes(scored_nodes, query_bundle=query)
+print([(x.text, x.score) for x in reranked_nodes])
+# Output: [('This is a dog', 0.9182743), ('This is a cat', 0.001404078)]
+```
+
+In this example, we start with two scored nodes, one about a cat and one about a dog. Even though the node about the cat had a higher initial score (0.6), the re-ranker correctly identified the node about the dog as being more relevant to the query "I want a dog" and assigned it a higher score (0.9182743).
+
+# Combining postprocessor and re-ranker into the query engine
+
+With the Metadata Replacement Postprocessor and the Sentence Transformer Re-ranker in place, we can now combine them into a query engine, capable of retrieving the most relevant information and generating coherent, context-aware responses.
+
+```python
+sentence_window_engine = sentence_index.as_query_engine(
+    similarity_top_k=6, node_postprocessors=[postproc, rerank]
+)
+```
+
+In this example, we set the `similarity_top_k` to 6, which means that the engine will initially retrieve the six most similar nodes based on the query. These nodes are then passed through the postprocessor and re-ranker, with the re-ranker filtering down to the top 2 most relevant nodes (`top_n=2`).
+
+Now, let's put our query engine to the test by asking a question over our dataset:
+
+```python
+window_response = sentence_window_engine.query(
+    "What are the keys to building a career in AI?"
+)
+display_response(window_response)
+```
+
+The engine gracefully responds:
+
+```python
+Final Response: Learning foundational technical skills, working on projects, finding a job, and being part of a supportive community are the keys to building a career in AI.
+```
+
+Impressive, right? By leveraging the power of Sentence Window Retrieval, our query engine was able to retrieve the most relevant information from the eBook and synthesize a coherent, context-aware response.
+
+# Putting everything together in a utility function
+
+While the individual components of Sentence Window Retrieval are useful on their own, they truly shine when we combine them into a cohesive utility function. Here's an example of such a function, neatly packaged for your convenience:
+
+```python
+def build_sentence_window_index(
+    documents,
+    llm,
+    embed_model="local:BAAI/bge-small-en-v1.5",
+    sentence_window_size=3,
+    save_dir="sentence_index",
+):
+    # create the sentence window node parser w/ default settings
+    node_parser = SentenceWindowNodeParser.from_defaults(
+        window_size=sentence_window_size,
+        window_metadata_key="window",
+        original_text_metadata_key="original_text",
+    )
+    sentence_context = ServiceContext.from_defaults(
+        llm=llm,
+        embed_model=embed_model,
+        node_parser=node_parser,
+    )
+    if not os.path.exists(save_dir):
+        sentence_index = VectorStoreIndex.from_documents(
+            documents, service_context=sentence_context
+        )
+        sentence_index.storage_context.persist(persist_dir=save_dir)
+    else:
+        sentence_index = load_index_from_storage(
+            StorageContext.from_defaults(persist_dir=save_dir),
+            service_context=sentence_context,
+        )
+    return sentence_index
+
+def get_sentence_window_query_engine(
+    sentence_index, similarity_top_k=6, rerank_top_n=2
+):
+    # define postprocessors
+    postproc = MetadataReplacementPostProcessor(target_metadata_key="window")
+    rerank = SentenceTransformerRerank(
+        top_n=rerank_top_n, model="BAAI/bge-reranker-base"
+    )
+    sentence_window_engine = sentence_index.as_query_engine(
+        similarity_top_k=similarity_top_k, node_postprocessors=[postproc, rerank]
+    )
+    return sentence_window_engine
+```
+
+These utility functions encapsulate the entire process of building the Sentence Window Retrieval index and constructing the query engine, complete with postprocessors and re-rankers. With just a few lines of code, you can now use this advanced technique in your own projects.
+
+# TruLens Evaluation and Parameter Tuning
+
+While Sentence Window Retrieval is a useful technique, it's essential to evaluate its performance and fine-tune its parameters to achieve optimal results. In this section, I'll explore how to leverage TruLens, an evaluation tool, to assess the impact of different sentence window sizes on various metrics, including context relevance, groundedness, and token usage.
+
+## A. Loading evaluation questions
+
+Before we begin, let's load a set of pre-generated evaluation questions that we'll use to assess our Sentence Window Retrieval system's performance.
+
+```python
+eval_questions = []
+with open('generated_questions.text', 'r') as file:
+    for line in file:
+        item = line.strip()
+        eval_questions.append(item)
+```
+
+## B. Iterating sentence window sizes (1, 3, 5)
+
+Now, let's start by evaluating our system with a sentence window size of 1. We'll set up the index, query engine, and TruLens recorder, and then run the evaluations against our loaded set of questions.
+
+```python
+sentence_index_1 = build_sentence_window_index(
+    documents,
+    llm=OpenAI(model="gpt-3.5-turbo", temperature=0.1),
+    embed_model="local:BAAI/bge-small-en-v1.5",
+    sentence_window_size=1,
+    save_dir="sentence_index_1",
+)
+
+sentence_window_engine_1 = get_sentence_window_query_engine(sentence_index_1)
+tru_recorder_1 = get_prebuilt_trulens_recorder(sentence_window_engine_1, app_id='sentence window engine 1')
+
+run_evals(eval_questions, tru_recorder_1, sentence_window_engine_1)
+```
+
+Analyzing the results in the TruLens dashboard, we can observe that while the system performs reasonably well in answer relevance and groundedness, its context relevance is quite poor. This is expected, as a smaller sentence window size often fails to capture sufficient contextual information, leading to lower context relevance scores.
+
+Next, let's increase the sentence window size to 3 and observe the changes in performance.
+
+```python
+sentence_index_3 = build_sentence_window_index(
+    documents,
+    llm=OpenAI(model="gpt-3.5-turbo", temperature=0.1),
+    embed_model="local:BAAI/bge-small-en-v1.5",
+    sentence_window_size=3,
+    save_dir="sentence_index_3",
+)
+
+sentence_window_engine_3 = get_sentence_window_query_engine(sentence_index_3)
+tru_recorder_3 = get_prebuilt_trulens_recorder(sentence_window_engine_3, app_id='sentence window engine 3')
+
+run_evals(eval_questions, tru_recorder_3, sentence_window_engine_3)
+```
+
+As expected, increasing the sentence window size to 3 results in a significant improvement in context relevance, groundedness, and answer relevance scores. By capturing a broader context around each sentence, the system can retrieve more relevant information and generate more grounded and accurate responses.
+
+However, as we continue to increase the sentence window size to 5, we notice an interesting trade-off.
+
+```python
+sentence_index_5 = build_sentence_window_index(
+    documents,
+    llm=OpenAI(model="gpt-3.5-turbo", temperature=0.1),
+    embed_model="local:BAAI/bge-small-en-v1.5",
+    sentence_window_size=5,
+    save_dir="sentence_index_5",
+)
+
+sentence_window_engine_5 = get_sentence_window_query
+```
+
+While increasing the window size from 1 to 3 led to significant improvements in context relevance, groundedness, and answer relevance, further increasing it to 5 reveals an interesting dynamic.
+
+```python
+tru_recorder_5 = get_prebuilt_trulens_recorder(sentence_window_engine_5, app_id='sentence window engine 5')
+run_evals(eval_questions, tru_recorder_5, sentence_window_engine_5)
+```
+
+Upon analyzing the results in the TruLens dashboard, we notice that while context relevance and answer relevance remain relatively flat, groundedness has actually dropped with the increase in the sentence window size from 3 to 5.
+
+This phenomenon can be attributed to the fact that as the context size increases, the language model can become overwhelmed with too much information. Consequently, during the synthesis step, the model may start relying more on its pre-existing knowledge from the pre-training phase, rather than solely focusing on the retrieved context. This can lead to a reduction in groundedness, as components of the final response become less traceable to the retrieved pieces of context.
+
+It's important to note that this trend is not universal and may vary depending on the specific dataset, language model, and other factors. However, it does highlight an important trade-off between context size and groundedness that needs to be carefully considered.
+
+## C. Analyzing results and identifying optimal window size
+
+Through our iterative evaluation process, I've observed that a sentence window size of 3 seems to strike the optimal balance between context relevance, groundedness, and answer relevance for our particular dataset and language model.
+
+While a smaller window size of 1 failed to capture sufficient context, leading to poor context relevance and groundedness scores, a larger window size of 5 resulted in a drop in groundedness, potentially due to the language model relying more on its pre-existing knowledge than the retrieved context.
+
+However, it's crucial to remember that the optimal window size may vary depending on the specific use case, dataset, and language model. Therefore, it's highly recommended to conduct similar iterative evaluations and fine-tuning processes to identify the most suitable configuration for your particular application.
+
+# Conclusion:
+
+In this blog post, we've taken a look at Sentence Window Retrieval. By decoupling the embedding and synthesis processes, and using sentence-level context retrieval and re-ranking, Sentence Window Retrieval offers a unique perspective on extracting relevant information and generating coherent, context-aware responses.

@@ -1,0 +1,404 @@
+---
+title: "LangChain Chains: Simple to Advanced Workflows"
+publishedAt: "07/05/2024, 10:25 pm"
+---
+
+![LangChain Chains: Simple to Advanced Workflows](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/72fmkuarkksp2gw862q5.jpg)
+
+At the heart of Langchain lies the concept of "chains" – a building block that allows you to compose and orchestrate different components to create sophisticated and intelligent applications.
+
+But before we get too deep into the technical weeds, let me set the stage with a little storytelling. Imagine you're a data scientist working on a cutting-edge project that involves processing and analyzing vast amounts of unstructured data, like customer reviews, social media posts, or even academic papers. Your goal is to extract insights and valuable information from this data, but the sheer volume and complexity of the task can be daunting.
+
+With LangChain chains you can break down this very complex task into smaller, manageable pieces, and then chain them together to create a seamless, end-to-end solution. It's like having a team of highly skilled assistants, each specializing in a specific task, and you're orchestrating their efforts to build something truly remarkable.
+
+## LLM Chain
+
+```python
+from langchain_openai import ChatOpenAI
+from langchain.prompts import ChatPromptTemplate
+from langchain.chains import LLMChain
+
+# Initialize the language model
+llm_model = "gpt-3.5-turbo"
+llm = ChatOpenAI(temperature=0.9, model=llm_model)
+
+# Create a prompt template
+prompt = ChatPromptTemplate.from_template("What is the best name to describe a company that makes {product}?")
+
+# Combine the LLM and prompt into an LLMChain
+chain = LLMChain(llm=llm, prompt=prompt)
+
+# Run the chain on some input data
+product = "Queen Size Sheet Set"
+chain_output = chain.invoke({product})
+print(chain_output)
+
+# Output 
+# {'product': {'Queen Size Sheet Set'}, 'text': 'Royal Slumber Bedding Co.'}
+```
+
+In this example, we start by importing the necessary imports from LangChain. We then initialize an `OpenAI` language model and create a prompt template that asks for the best company name to describe a given product.
+
+Next, we combine the language model and the prompt template into an `LLMChain`. This chain can now be invoked with any product description, and it will generate a suitable company name based on the input.
+
+For instance, if we pass in "Queen Size Sheet Set" as the product, the chain might output "Royal Slumber Bedding Co." as the suggested company name.
+
+Simple, right? But don't be fooled by its simplicity – the `LLMChain` is a useful tool that can be used in a wide range of applications, from content generation to data analysis, and even code generation.
+
+## Sequential Chains: Composing Multiple Steps
+
+While the `LLMChain` is a great starting point, sometimes our tasks require a series of steps or operations to be performed in a specific order. That's where sequential chains come into play, allowing us to chain multiple prompts together to create more complex and sophisticated workflows.
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/85dhaaub7mv7uzmnwvte.png)
+
+
+
+### SimpleSequentialChain: One Input, One Output
+
+Let's start with the `SimpleSequentialChain`, which is ideal for scenarios where each step in the chain has a single input and a single output. Imagine you want to create a system that not only suggests a company name based on a product but also generates a short description for that company.
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/ifssthz89y3iiyqueflz.png)
+
+
+
+```python
+from langchain.chains import SimpleSequentialChain
+
+# Initialize the language model
+llm = ChatOpenAI(temperature=0.9, model=llm_model)
+
+# Prompt template 1: Suggest a company name
+first_prompt = ChatPromptTemplate.from_template("What is the best name to describe a company that makes {product}?")
+chain_one = LLMChain(llm=llm, prompt=first_prompt)
+
+# Prompt template 2: Generate a company description
+second_prompt = ChatPromptTemplate.from_template("Write a 20-word description for the following company: {company_name}")
+chain_two = LLMChain(llm=llm, prompt=second_prompt)
+
+# Create the SimpleSequentialChain
+overall_simple_chain = SimpleSequentialChain(chains=[chain_one, chain_two], verbose=True)
+
+# Run the chain on some input data
+product = "Queen Size Sheet Set"
+chain_output = overall_simple_chain.invoke(product)
+print(chain_output)
+
+# Output 
+# {'input': 'Queen Size Sheet Set',
+# 'output': 'Regal Comfort Linens provides luxurious and stylish bedding options to ensure a comfortable and elegant sleep experience for customers.'}
+```
+
+In this example, we first define two separate `LLMChains`: one for suggesting a company name based on the product, and another for generating a short description given the company name.
+
+We then combine these two chains into a `SimpleSequentialChain`, specifying the order in which they should be executed. When we invoke this chain with a product like "Queen Size Sheet Set," it will first generate a company name (e.g., "Royal Comfort Linens"), and then use that name as input to the second chain, which will output a description like "Regal Comfort Linens provides luxurious and stylish bedding options to ensure a comfortable and elegant sleep experience for customers."
+
+The beauty of the `SimpleSequentialChain` lies in its ability to break down complex tasks into smaller, manageable steps, each with a well-defined input and output. This modular approach not only makes your code more readable and maintainable but also allows for greater flexibility and extensibility as your project evolves.
+
+### SequentialChain: Handling Multiple Inputs and Outputs
+
+While the `SimpleSequentialChain` is great for straightforward tasks, sometimes our chains need to handle multiple inputs and outputs simultaneously. Enter the `SequentialChain`, a more powerful and flexible version of its simpler counterpart.
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/av57lczoquv0h4wzb2e4.png)
+
+
+
+```python
+from langchain.chains import SequentialChain
+
+# Initialize the language model
+llm = ChatOpenAI(temperature=0.9, model=llm_model)
+
+# Prompt template 1: Translate review to English
+first_prompt = ChatPromptTemplate.from_template("Translate the following review to English:\n\n{Review}")
+chain_one = LLMChain(llm=llm, prompt=first_prompt, output_key="English_Review")
+
+# Prompt template 2: Summarize the review in one sentence
+second_prompt = ChatPromptTemplate.from_template("Can you summarize the following review in 1 sentence:\n\n{English_Review}")
+chain_two = LLMChain(llm=llm, prompt=second_prompt, output_key="summary")
+
+# Prompt template 3: Detect the language of the review
+third_prompt = ChatPromptTemplate.from_template("What language is the following review:\n\n{Review}")
+chain_three = LLMChain(llm=llm, prompt=third_prompt, output_key="language")
+
+# Prompt template 4: Generate a follow-up response
+fourth_prompt = ChatPromptTemplate.from_template("Write a follow-up response to the following summary in the specified language:\n\nSummary: {summary}\n\nLanguage: {language}")
+chain_four = LLMChain(llm=llm, prompt=fourth_prompt, output_key="followup_message")
+
+# Create the SequentialChain
+overall_chain = SequentialChain(
+    chains=[chain_one, chain_two, chain_three, chain_four],
+    input_variables=["Review"],
+    output_variables=["English_Review", "summary", "followup_message"],
+    verbose=True,
+)
+
+# Run the chain on some input data
+review = "Je trouve le goût médiocre. La mousse ne tient pas, c'est bizarre. J'achète les mêmes dans le commerce et le goût est bien meilleur...\nVieux lot ou contrefaçon !?"
+chain_output = overall_chain.invoke(review)
+print(chain_output)
+
+# Output
+# Entering new SequentialChain chain...
+# Finished chain.
+# {'English_Review': "I find the taste mediocre. The foam doesn't hold, it's "
+#                    'weird. I buy the same ones in stores and the taste is much '
+#                    'better... \n'
+#                    'Old batch or counterfeit!?',
+#  'Review': "Je trouve le goût médiocre. La mousse ne tient pas, c'est bizarre. "
+#            "J'achète les mêmes dans le commerce et le goût est bien "
+#            'meilleur...\n'
+#            'Vieux lot ou contrefaçon !?',
+#  'followup_message': "Je suis désolé(e) d'apprendre que vous avez trouvé le "
+#                      "goût du produit médiocre. Il est possible qu'il s'agisse "
+#                      "d'un lot ancien ou contrefait, comme vous l'avez "
+#                      "suggéré. Il est important de s'assurer de la qualité des "
+#                      'produits que nous consommons. Avez-vous envisagé de '
+#                      'contacter le fabricant pour clarifier la situation ? '
+#                      "J'espère que votre prochaine expérience d'achat sera "
+#                      'plus satisfaisante. Merci de partager votre avis.',
+#  'summary': 'The reviewer found the taste of the product mediocre and '
+#             'different from what they usually buy in stores, suggesting that '
+#             'it may be an old batch or counterfeit.'}
+```
+
+In this more advanced example, we define four separate `LLMChains`, each with its own specific task:
+
+1. Translate a product review from its original language to English.
+    
+2. Summarize the translated review in a single sentence.
+    
+3. Detect the original language of the review.
+    
+4. Generate a follow-up response to the summary in the detected language.
+    
+
+The key difference here is that each chain can have multiple input and output variables, and we need to explicitly specify these using the `output_key` and `input_variables`/`output_variables` parameters.
+
+For instance, the first chain takes in the original `Review` as input and outputs the `English_Review`. The second chain then takes the `English_Review` as input and outputs a one-sentence `summary`. The third chain uses the original `Review` to detect the `language`, and finally, the fourth chain combines the `summary` and `language` to generate a `followup_message`.
+
+We then combine these four chains into a single `SequentialChain`, specifying the order in which they should be executed, as well as the input and output variables for the overall chain.
+
+When we invoke this chain with a product review like "Je trouve le goût médiocre. La mousse ne tient pas, c'est bizarre. J'achète les mêmes dans le commerce et le goût est bien meilleur...\\nVieux lot ou contrefaçon !?", it will go through each step in the chain, translating the review to English, summarizing it, detecting the original language (French in this case), and finally generating a follow-up response in French based on the summary.
+
+The usefulness of the `SequentialChain` lies in its ability to handle complex workflows with multiple inputs and outputs, allowing you to break down even the most intricate tasks into smaller, manageable components.
+
+## Router Chains: Routing to Specialized Sub-Chains
+
+Sometimes, our tasks require different approaches or specialized sub-chains depending on the input data. That's where router chains come into play, allowing us to dynamically route inputs to the appropriate sub-chain based on certain criteria.
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/dvo0hh8nmgmxa1m04zl1.png)
+
+
+
+### MultiPromptChain: Routing Between Specialized Prompts
+
+One common use case for router chains is when we have multiple prompts, each specialized for a particular type of input or task. The `MultiPromptChain` allows us to define these specialized prompts and then dynamically route inputs to the appropriate prompt based on the input content.
+
+```python
+from langchain.chains.router import MultiPromptChain
+from langchain.chains.router.llm_router import LLMRouterChain, RouterOutputParser
+from langchain.prompts import PromptTemplate
+
+# Define specialized prompt templates
+physics_template = """You are a very smart physics professor. \
+You are great at answering questions about physics in a concise\
+and easy to understand manner. \
+When you don't know the answer to a question you admit\
+that you don't know.
+
+Here is a question:
+{input}"""
+
+
+math_template = """You are a very good mathematician. \
+You are great at answering math questions. \
+You are so good because you are able to break down \
+hard problems into their component parts, 
+answer the component parts, and then put them together\
+to answer the broader question.
+
+Here is a question:
+{input}"""
+
+history_template = """You are a very good historian. \
+You have an excellent knowledge of and understanding of people,\
+events and contexts from a range of historical periods. \
+You have the ability to think, reflect, debate, discuss and \
+evaluate the past. You have a respect for historical evidence\
+and the ability to make use of it to support your explanations \
+and judgements.
+
+Here is a question:
+{input}"""
+
+
+computerscience_template = """ You are a successful computer scientist.\
+You have a passion for creativity, collaboration,\
+forward-thinking, confidence, strong problem-solving capabilities,\
+understanding of theories and algorithms, and excellent communication \
+skills. You are great at answering coding questions. \
+You are so good because you know how to solve a problem by \
+describing the solution in imperative steps \
+that a machine can easily interpret and you know how to \
+choose a solution that has a good balance between \
+time complexity and space complexity. 
+
+Here is a question:
+{input}"""
+
+# Create prompt info dictionaries
+prompt_infos = [
+    {
+        "name": "physics",
+        "description": "Good for answering questions about physics",
+        "prompt_template": physics_template,
+    },
+    {
+        "name": "math",
+        "description": "Good for answering math questions",
+        "prompt_template": math_template,
+    },
+    {
+        "name": "History",
+        "description": "Good for answering history questions",
+        "prompt_template": history_template,
+    },
+    {
+        "name": "computer science",
+        "description": "Good for answering computer science questions",
+        "prompt_template": computerscience_template,
+    },
+]
+
+# Initialize the language model
+llm = ChatOpenAI(temperature=0, model=llm_model)
+
+# Create destination chains (LLMChains) for each prompt
+destination_chains = {}
+for p_info in prompt_infos:
+    name = p_info["name"]
+    prompt_template = p_info["prompt_template"]
+    prompt = ChatPromptTemplate.from_template(template=prompt_template)
+    chain = LLMChain(llm=llm, prompt=prompt)
+    destination_chains[name] = chain
+
+# Define a default chain for inputs that don't match any specialized prompt
+default_prompt = ChatPromptTemplate.from_template("{input}")
+default_chain = LLMChain(llm=llm, prompt=default_prompt)
+
+MULTI_PROMPT_ROUTER_TEMPLATE = """Given a raw text input to a \
+language model select the model prompt best suited for the input. \
+You will be given the names of the available prompts and a \
+description of what the prompt is best suited for. \
+You may also revise the original input if you think that revising\
+it will ultimately lead to a better response from the language model.
+
+<< FORMATTING >>
+Return a string snippet enclosed by triple backticks a JSON object formatted to look like below:
+{
+    "destination": string \ name of the prompt to use or "default"
+    "next_inputs": string \ a potentially modified version of the original input
+}
+
+REMEMBER: "destination" MUST be one of the candidate prompt \
+names specified below OR it can be "default" if the input is not \
+well suited for any of the candidate prompts. \
+REMEMBER: "next_inputs" can just be the original input \
+if you don't think any modifications are needed.
+
+<< CANDIDATE PROMPTS >>
+{destinations}
+
+REMEMBER: If destination name not there input the question
+
+<< INPUT >>
+{input}
+
+<< OUTPUT (remember to include the ```json```)>>"""
+
+# Create the router prompt template
+router_template = MULTI_PROMPT_ROUTER_TEMPLATE.format(destinations=destinations_str)  # (a prompt template for the router to use)
+router_prompt = PromptTemplate(template=router_template, input_variables=["input"], output_parser=RouterOutputParser())
+router_chain = LLMRouterChain.from_llm(llm, router_prompt)
+
+# Create the MultiPromptChain
+chain = MultiPromptChain(
+    router_chain=router_chain,
+    destination_chains=destination_chains,
+    default_chain=default_chain,
+    verbose=True,
+)
+
+# Run the chain on some input data
+physics_question = "What is black body radiation?"
+chain_output = chain.invoke(physics_question)
+print(chain_output)
+# Output 
+# Entering new MultiPromptChain chain...
+# physics: {'input': 'What is black body radiation?'}
+# Finished chain.
+# {'input': 'What is black body radiation?',
+#  'text': "Black body radiation is the electromagnetic radiation emitted by a perfect absorber of radiation, known as a black body. A black body absorbs all incoming radiation and emits radiation across the entire electromagnetic spectrum. The spectrum of black body radiation is continuous and follows a specific distribution known as Planck's law. This phenomenon is important in understanding the behavior of objects at different temperatures and is a key concept in the field of thermal physics."}
+
+math_question = "what is 2 + 2"
+chain_output = chain.invoke(math_question )
+print(chain_output)
+# Output 
+# Entering new MultiPromptChain chain...
+# math: {'input': 'what is 2 + 2'}
+# Finished chain.
+# {'input': 'what is 2 + 2', 'text': 'The answer to 2 + 2 is 4.'}
+
+biology_question = "Why does every cell in our body contain DNA?"
+chain_output = chain.invoke(biology_question )
+print(chain_output)
+# Output
+# Entering new MultiPromptChain chain...
+# None: {'input': 'Why does every cell in our body contain DNA?'}
+# Finished chain.
+# {'input': 'Why does every cell in our body contain DNA?',
+#  'text': 'Every cell in our body contains DNA because DNA carries the genetic information that determines the characteristics and functions of an organism. DNA contains the instructions for building and maintaining an organism, including the proteins that are essential for cell function and structure. This genetic information is passed down from parent to offspring and is essential for the growth, development, and functioning of all cells in the body. Having DNA in every cell ensures that the genetic information is preserved and can be used to carry out the necessary processes for life.'}
+```
+
+In this example, we first define several specialized prompt templates, each designed to handle a specific type of input or task (e.g., physics questions, math questions, history questions, computer science questions).
+
+We then create prompt info dictionaries for each of these templates, which include a name, a description, and the actual prompt template itself.
+
+Next, we initialize our language model and create destination chains (LLMChains) for each of the specialized prompts. These destination chains will be the ones that are invoked when an input matches a particular prompt.
+
+We also define a default chain, which will be used for inputs that don't match any of the specialized prompts.
+
+The heart of the `MultiPromptChain` is the router chain, which is responsible for determining which destination chain to use based on the input. We define a router prompt template that provides instructions and formatting for the router, and then create the `LLMRouterChain` using this template and our language model.
+
+Finally, we create the `MultiPromptChain` itself, passing in the router chain, the destination chains, and the default chain.
+
+When we invoke this chain with an input like "What is black body radiation?", the router chain will analyze the input and determine that it's a physics question. It will then route the input to the physics destination chain, which will provide a detailed answer about black body radiation.
+
+If we input a question that doesn't match any of the specialized prompts, like "What is the role of DNA in cells?", the router chain will route the input to the default chain, which will attempt to provide a general answer using the pretrained LLM data.
+
+The `MultiPromptChain` allows us to create highly specialized and efficient workflows by dynamically routing inputs to the most appropriate sub-chain or prompt, ensuring that each input is handled by the component best suited for the task.
+
+### Benefits of Router Chains
+
+Router chains offer several benefits that make them a useful tool in your machine learning and natural language processing toolkit:
+
+1. **Specialization**: By routing inputs to specialized sub-chains, you can ensure that each task is handled by the component best suited for it, leading to more accurate and relevant results.
+    
+2. **Efficiency**: Instead of running every input through multiple chains or prompts, router chains intelligently route inputs to the appropriate destination, saving computational resources and improving overall performance.
+    
+3. **Flexibility**: Router chains can be easily extended or modified by adding or removing destination chains or prompts, making them highly adaptable to changing requirements or new domains.
+    
+4. **Modularity**: Each sub-chain or prompt can be developed and tested independently, promoting code reusability and maintainability.
+    
+5. **Scalability**: As your project grows and becomes more complex, router chains can help manage and orchestrate an increasing number of specialized components, ensuring that your system remains robust and efficient.
+    
+
+With router chains, you can create sophisticated and intelligent applications that can handle a wide range of inputs and tasks, all while maintaining a high level of specialization and efficiency.
+
+## Source Code
+
+[https://github.com/RutamBhagat/LangChainHCCourse1/blob/main/course\_1/chains.ipynb](https://github.com/RutamBhagat/LangChainHCCourse1/blob/main/course_1/chains.ipynb)

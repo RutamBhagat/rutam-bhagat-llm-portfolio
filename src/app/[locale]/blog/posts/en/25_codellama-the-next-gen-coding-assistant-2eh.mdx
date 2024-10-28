@@ -1,0 +1,338 @@
+---
+title: "CodeLlama: The Next-Gen Coding Assistant"
+publishedAt: "13/04/2024, 10:01 pm"
+---
+
+![CodeLlama: The Next-Gen Coding Assistant](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/17rkfmwa9jfolx8hth2s.jpg)
+
+As developers, we all know the struggle of staring at a blank screen, trying to write code from scratch especially under a tight deadline. It's like a never-ending battle between our caffeine-fueled brains and the relentless ticking of the clock. But what if I told you that there's a sidekick that can lend a helping hand throughout your coding journey?
+
+Enter CodeLlama, the language model that's specifically trained to assist you with all things code-related. Whether you're an experienced software engineer or a newb programmer just starting your coding adventures, CodeLlama has got your back. It's like having a coding mentor providing you solutions, except way cooler (and without the weird looks you'd get for talking to yourself).
+
+## Getting to Know CodeLlama
+
+Before we dive into the nitty-gritty details, let's take a moment to appreciate the sheer awesomeness of CodeLlama. This is a collection of language models, each with its own unique specialty.
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/ut0gbczb8q0tpea3d1f4.png)
+
+
+
+CodeLlama comes in different flavors, each with its own special sauce. We've got the base Llama models, the CodeLlama instruct models, and the CodeLlama Python models. You can choose one to suit your particular needs.
+
+### Using CodeLlama for Mathematical Problems
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/qa0deqw8bgzpa12dpfqs.png)
+
+
+
+Alright, let's kick things off with a real-world example. Imagine you've got a list of daily minimum and maximum temperatures, and you need to figure out which day had the lowest temperature. Sounds simple enough, right?
+
+First up, we'll ask the the regular Llama 7B model to take a crack at it:
+
+```python
+import utils
+
+temp_min = [42, 52, 47, 47, 53, 48, 47, 53, 55, 56, 57, 50, 48, 45]
+temp_max = [55, 57, 59, 59, 58, 62, 65, 65, 64, 63, 60, 60, 62, 62]
+
+prompt = f"""
+Below is the 14 day temperature forecast in fahrenheit degree:
+
+14-day low temperatures: {temp_min}
+14-day high temperatures: {temp_max}
+
+Which day has the lowest temperature?
+"""
+
+response = utils.llama(prompt)
+print(response)
+```
+
+```plaintext
+# response output
+Based on the temperature forecast you provided, the day with the lowest temperature is Day 7, with a low temperature of 47°F (8.3°C).
+```
+
+Hmm, not quite right. Llama model made a valiant effort, but it looks like it missed the mark on this one. No worries, though – that's where CodeLlama shines!
+
+Let's ask CodeLlama to write some Python code that can help us find the actual lowest temperature:
+
+```python
+prompt_2 = f"""
+Write Python code that can calculate the minimum of the list temp_min and the maximum of the list temp_max
+"""
+
+response_2 = utils.code_llama(prompt_2)
+print(response_2)
+```
+
+```plaintext
+# response_2 output
+def get_min_max(temp_min, temp_max):
+    return min(temp_min), max(temp_max)
+```
+
+```plaintext
+# response_2 output
+# Test case 1:
+assert get_min_max([1, 2, 3], [4, 5, 6]) == (1, 6)
+# Test case 2:
+assert get_min_max([1, 2, 3], [4, 5, 6, 7]) == (1, 7)
+# Test case 3:
+assert get_min_max([1, 2, 3, 4], [4, 5, 6]) == (1, 6)
+```
+
+Just like that, CodeLlama whipped up a nice little function to solve our problem. Not only that, but it even threw in some test cases to make sure everything is working as expected. Talk about going the extra mile!
+
+Now, let's put this function to the test:
+
+```python
+def get_min_max(temp_min, temp_max):
+    return min(temp_min), max(temp_max)
+
+temp_min = [42, 52, 47, 47, 53, 48, 47, 53, 55, 56, 57, 50, 48, 45]
+temp_max = [55, 57, 59, 59, 58, 62, 65, 65, 64, 63, 60, 60, 62, 62]
+
+results = get_min_max(temp_min, temp_max)
+print(results)
+```
+
+```python
+(42, 65)
+```
+
+CodeLlama managed to find the lowest temperature (42°F) and the highest temperature (65°F) in our lists.
+
+### Code Completion with CodeLlama
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/fimn704ygqlsbq02tiwp.png)
+
+
+Alright, now that we've seen CodeLlama in action, let's explore another one of its neat tricks: code completion. Imagine you're halfway through writing a function, and you hit a mental roadblock. That's where CodeLlama comes in to fill in the blanks (literally).
+
+Let's say you're working on a function that calculates a star rating based on a numerical value. You've got the basic structure in place, but you're struggling to fill in the rest of the conditions. No problemo! Just ask CodeLlama to lend a hand.
+
+```python
+prompt = """
+def star_rating(n):
+    '''
+      This function returns a rating given the number n,
+      where n is an integers from 1 to 5.
+    '''
+
+    if n == 1:
+        rating="poor"
+    <FILL>
+    elif n == 5:
+        rating="excellent"
+
+    return rating
+"""
+
+response = utils.code_llama(prompt, verbose=True)
+print(response)
+```
+
+```plaintext
+# response output
+def star_rating(n):
+    if n == 1:
+        rating = "poor"
+    elif n == 2:
+        rating = "fair"
+    elif n == 3:
+        rating = "average"
+    elif n == 4:
+        rating = "good"
+    else:
+        rating = "excellent"
+    return rating
+```
+
+Just like that, CodeLlama filled in the missing pieces, completing the function for us. No more staring at the screen, wondering what to type next. With CodeLlama by your side, you can breeze through those code-writing sessions like a pro.
+
+### Writing Efficient Code with CodeLlama
+
+Now, let's talk about efficiency. As developers, we all know that writing efficient code is crucial, especially when dealing with complex algorithms or large datasets. Luckily, CodeLlama has our backs on this front as well.
+
+Let's take a classic example: the Fibonacci sequence. If you're not familiar with it, the Fibonacci sequence is a series of numbers where each number is the sum of the two preceding ones (0, 1, 1, 2, 3, 5, 8, 13, 21, and so on). Seems simple enough, right? Well, not so fast.
+
+First, let's ask CodeLlama to write a function that calculates the nth Fibonacci number:
+
+```python
+prompt = """
+Provide a function that calculates the n-th fibonacci number.
+"""
+
+response = utils.code_llama(prompt, verbose=True)
+print(response)
+```
+
+```plaintext
+# response output
+def fibonacci(n):
+    if n <= 1:
+        return n
+    else:
+        return fibonacci(n-1) + fibonacci(n-2)
+```
+
+```plaintext
+# response output
+# Test case 1:
+assert fibonacci(0) == 0
+# Test case 2:
+assert fibonacci(1) == 1
+# Test case 3:
+assert fibonacci(2) == 1
+# Test case 4:
+assert fibonacci(3) == 2
+# Test case 5:
+assert fibonacci(6) == 8
+```
+
+CodeLlama gave us a recursive implementation of the Fibonacci function, complete with test cases. Neat, right? But hold on a second – there's a catch.
+
+While this recursive approach might look elegant, it's actually quite inefficient, especially for larger values of `n`. Let's ask CodeLlama to evaluate the efficiency of its solution and see if it can come up with a better approach.
+
+```python
+code = """
+def fibonacci(n):
+    if n <= 1:
+        return n
+    else:
+        return fibonacci(n-1) + fibonacci(n-2)
+"""
+
+prompt_1 = f"""
+For the following code: {code}
+Is this implementation efficient?
+Please explain.
+"""
+
+response_1 = utils.code_llama(prompt_1, verbose=True)
+print(response_1)
+```
+
+```plaintext
+No, this implementation is not efficient. The time complexity of this function is O(2^n), which means that the time it takes to compute the nth Fibonacci number grows exponentially with the size of the input.
+
+The reason for this is that the function calls itself recursively twice, once for each term in the Fibonacci sequence. Each recursive call requires the computation of the previous two terms, which means that the time complexity grows exponentially with the size of the input.
+
+A more efficient implementation of the Fibonacci sequence would be to use a loop instead of recursion, like this:
+
+def fibonacci(n):
+    a, b = 0, 1
+    for i in range(n):
+        a, b = b, a + b
+    return a
+
+This implementation has a time complexity of O(n), which means that the time it takes to compute the nth Fibonacci number grows linearly with the size of the input.
+
+In general, it's important to be aware of the time complexity of your algorithms and to choose implementations that have a lower time complexity. This can help you avoid running into performance issues when dealing with large inputs.
+```
+
+Look at that! Not only did CodeLlama identify the inefficiency of the recursive approach, but it also provided a more efficient, iterative solution with a better time complexity of O(n). It even took the time to explain the reasoning behind its suggestion.
+
+But wait, there's more! Let's put both implementations to the test and see how they perform in terms of runtime:
+
+```python
+import time
+
+def fibonacci(n):
+    if n <= 1:
+        return n
+    else:
+        return fibonacci(n-1) + fibonacci(n-2)
+
+def fibonacci_fast(n):
+    a, b = 0, 1
+    for i in range(n):
+        a, b = b, a + b
+    return a
+
+n = 40
+start_time = time.time()
+fibonacci(n)
+end_time = time.time()
+print(f"recursive fibonacci({n})")
+print(f"runtime in seconds: {end_time-start_time}")
+
+start_time = time.time()
+fibonacci_fast(n)
+end_time = time.time()
+print(f"non-recursive fibonacci({n})")
+print(f"runtime in seconds: {end_time-start_time}")
+```
+
+```plaintext
+recursive fibonacci(40)
+runtime in seconds: 33.670231103897095
+non-recursive fibonacci(40)
+runtime in seconds: 3.981590270996094e-05
+```
+
+The difference in runtime is staggering. While the recursive implementation took a whopping 33 seconds to compute the 40th Fibonacci number, the iterative solution blazed through in a mere fraction of a second, a night-and-day difference!
+
+This example perfectly illustrates the importance of writing efficient code, especially when dealing with computationally intensive tasks or large datasets. CodeLlama can not only write code but also optimize it for maximum performance.
+
+### CodeLlama's Context Window: More Than Just Code
+
+Now, you might be thinking, "Okay, CodeLlama is great for coding tasks, but what if I need to handle larger chunks of text?" Well, CodeLlama has you covered there too.
+
+One of the standout features of CodeLlama is its ability to handle input prompts that are over 20 times larger than regular Llama models. That's right – you can feed it massive amounts of text, and it won't even break a sweat (well, figuratively speaking, since it doesn't actually sweat).
+
+Let's try to summarize the classic tale "The Velveteen Rabbit" using a regular Llama model:
+
+```python
+with open("TheVelveteenRabbit.txt", 'r', encoding='utf-8') as file:
+    text = file.read()
+
+prompt = f"""
+Give me a summary of the following text in 50 words:\n\n
+{text}
+"""
+
+response = utils.llama(prompt)
+print(response)
+```
+
+```plaintext
+{'error': {'message': 'Input validation error: `inputs` tokens + `max_new_tokens` must be <= 4097. Given: 5864 `inputs` tokens and 1024 `max_new_tokens`', 'type': 'invalid_request_error', 'param': 'max_tokens', 'code': None}}
+```
+
+Yikes! The regular Llama model couldn't handle the size of the input text and threw an error. But fear not, for CodeLlama is here to save the day!
+
+```python
+from utils import code_llama
+
+with open("TheVelveteenRabbit.txt", 'r', encoding='utf-8') as file:
+    text = file.read()
+
+prompt = f"""
+Give me a summary of the following text in 50 words:\n\n
+{text}
+"""
+
+response = code_llama(prompt)
+print(response)
+```
+
+```plaintext
+The story of "The Velveteen Rabbit" is a classic tale of the nursery, and its themes of love, magic, and the power of imagination continue to captivate readers of all ages. The story follows the journey of a stuffed rabbit who, despite his shabby appearance, is loved by a young boy and becomes "real" through the boy's love and care. The story also explores the idea of the power of the imagination and the magic of childhood, as the rabbit's appearance changes from shabby and worn to beautiful and real.
+
+[...] (Response truncated for brevity)
+```
+
+Just like that, CodeLlama analyzed the entire text and spit out a summary for us. Sure, the summary itself might not be the most compelling piece of literature (CodeLlama's primary strength lies in code-related tasks), but the fact that it could handle such a large input is a testament to its versatility.
+
+Whether you're working on a massive codebase or a writer tackling a novel-length manuscript, CodeLlama's extended context window can be very useful, allowing you to work with larger datasets and more complex projects without hitting input size limits.
+
+## Conclusion
+
+Alright, folks, we've covered a lot of ground today, but I hope you're as excited about CodeLlama. Next time you find yourself stuck on a coding problem, or you're staring at a blank screen, unsure of where to start, remember that you've got CodeLlama in your corner. Whether you need it to write code from scratch, complete partially written functions, or optimize your existing codebase, this sidekick has got your back.
+
+But CodeLlama isn't just a one-trick pony – its extended context window means that it can handle all sorts of tasks, from summarizing lengthy texts to processing massive datasets. It's like having a Swiss Army knife of language models, capable of tackling a wide range of challenges with ease.

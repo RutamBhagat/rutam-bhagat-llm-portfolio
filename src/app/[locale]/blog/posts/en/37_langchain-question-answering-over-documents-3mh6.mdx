@@ -1,0 +1,173 @@
+---
+title: "Langchain: Question Answering over Documents"
+publishedAt: "08/05/2024, 08:40 pm"
+---
+
+![Langchain: Question Answering over Documents](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/uvmqvgzps6oodrywglri.jpg)
+
+In the rapidly moving of machine learning and natural language processing, large language models are very useful tools for tackling a wide range of tasks. One such task that has garnered significant interest is question answering over documents, where LLMs are used to provide accurate responses based on the content of documents such as PDFs, webpages, or internal company files.
+
+This blog post will dive into the fascinating world of using LLMs for question answering over documents, exploring key concepts like embeddings and vector stores. We'll also take a step-by-step journey through the process and introduce you to the LangChain library, which simplifies the implementation of these techniques.
+
+# Question Answering over Documents
+
+Imagine having a virtual assistant that can instantly answer your questions based on a vast collection of documents, from product catalogs to research papers. That's the usefulness of question answering over documents using LLMs.
+
+```python
+from dotenv import load_dotenv, find_dotenv
+
+_ = load_dotenv(find_dotenv())
+
+from langchain.chains.retrieval_qa.base import RetrievalQA
+from langchain.vectorstores.docarray import DocArrayInMemorySearch
+from langchain_community.document_loaders.csv_loader import CSVLoader
+from langchain_openai import ChatOpenAI
+from IPython.display import display, Markdown
+from langchain.indexes import VectorstoreIndexCreator
+```
+
+## Using LLMs to Answer Questions Based on Documents
+
+LLMs are trained on massive datasets, but what if you need them to answer questions based on documents they haven't seen before? That's where the magic happens. By combining LLMs with external data sources, you can make them more flexible and adaptable to your specific use case.
+
+```python
+from langchain_openai import OpenAI
+
+llm_replacement_model = OpenAI(temperature=0, model="gpt-3.5-turbo-instruct")
+
+path = "OutdoorClothingCatalog_1000.csv"
+loader = CSVLoader(file_path=path)
+index = VectorstoreIndexCreator(vectorstore_cls=DocArrayInMemorySearch).from_loaders([loader])
+
+query = "Please list all your shirts with sun protection in a table in markdown and summarize each one."
+response = index.query(query, llm=llm_replacement_model)
+
+display(Markdown(response))
+# Output
+```
+
+| Name | Description | Sun Protection Rating |
+| --- | --- | --- |
+| Men's Tropical Plaid Short-Sleeve Shirt | Made of 100% polyester, UPF 50+ rated, wrinkle-resistant, front and back cape venting, two front bellows pockets, imported | SPF 50+, blocks 98% of harmful UV rays |
+| Men's Plaid Tropic Shirt, Short-Sleeve | Made of 52% polyester and 48% nylon, UPF 50+ rated, SunSmart technology, wrinkle-free, front and back cape venting, two front bellows pockets, imported | SPF 50+, blocks 98% of harmful UV rays |
+| Men's TropicVibe Shirt, Short-Sleeve | Made of 71% nylon and 29% polyester, UPF 50+ rated, wrinkle-resistant, front and back cape venting, two front bellows pockets, imported | SPF 50+, blocks 98% of harmful UV rays |
+| Sun Shield Shirt | Made of 78% nylon and 22% Lycra Xtra Life fiber, UPF 50+ rated, moisture-wicking, fits comfortably over swimsuit, abrasion-resistant, imported | SPF |
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/xafpzpco086l5m2xc97e.png)
+
+
+
+## Embeddings
+
+Embeddings are numerical representations of text that capture its semantic meaning. Similar texts will have similar embeddings, allowing us to compare and find relevant documents in the vector space.
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/5k5o82zrjlvua10kp182.png)
+
+
+
+```python
+from langchain.document_loaders import CSVLoader
+
+loader = CSVLoader(file_path=path)
+docs = loader.load()
+print(docs[0])
+# Output
+# Document(page_content=": 0\nname: Women's Campside Oxfords\ndescription: This ultracomfortable lace-to-toe Oxford boasts a super-soft canvas, thick cushioning, and quality construction for a broken-in feel from the first time you put them on. \n\nSize & Fit: Order regular shoe size. For half sizes not offered, order up to next whole size. \n\nSpecs: Approx. weight: 1 lb.1 oz. per pair. \n\nConstruction: Soft canvas material for a broken-in feel and look. Comfortable EVA innersole with Cleansport NXT® antimicrobial odor control. Vintage hunt, fish and camping motif on innersole. Moderate arch contour of innersole. EVA foam midsole for cushioning and support. Chain-tread-inspired molded rubber outsole with modified chain-tread pattern. Imported. \n\nQuestions? Please contact us for any inquiries.", 
+#         metadata={'source': '/home/voldemort/Downloads/Code/Langchain_Harrison_Chase/Course_1/OutdoorClothingCatalog_1000.csv', 'row': 0})
+```
+
+```python
+from langchain_openai import OpenAIEmbeddings
+import os
+
+openai_api_key = os.environ.get("OPENAI_API_KEY")
+embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
+embed = embeddings.embed_query("Hi, my name is Rutam")
+print(embed[:5])  
+# Output
+# [-0.007099587601852241, -0.01262648147645342, -0.016163436995450566, -0.0208622593573264, -0.013261977828921556]
+```
+
+## Vector Databases
+
+Vector databases store these embeddings, allowing us to find relevant chunks of text for a given query by measuring vector similarity.
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/4gle6kwejnvn11pm4mcg.png)
+
+
+
+```python
+from langchain.indexes import VectorstoreIndexCreator
+
+db = DocArrayInMemorySearch.from_documents(docs, embedding=embeddings)
+query = "Please suggest a shirt with sunblocking"
+docs = db.similarity_search(query)
+```
+
+## Use Retriever and Language Model for Question Answering
+
+We'll create a retriever from the vector store and use a language model like ChatOpenAI for text generation.
+
+```python
+from langchain_openai import ChatOpenAI
+
+retriever = db.as_retriever()
+llm = ChatOpenAI(temperature=0.0, model="gpt-3.5-turbo")
+```
+
+Then, we combine the retrieved documents and the query, pass them to the language model, and get the final answer.
+
+```python
+qdocs = "\n".join([docs[i].page_content for i in range(len(docs))])
+response = llm.call_as_llm(
+    f"{qdocs} Question: Please list shirts with sun protection in a table in markdown and summarize each one."
+)
+```
+
+# LangChain Chains for Question Answering
+
+While we can implement the process above manually, LangChain provides a powerful abstraction called `RetrievalQA` that simplifies the process.
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/w9qdepaydzri4qg8gqm0.png)
+
+
+
+```python
+qa_stuff = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, verbose=True)
+response = qa_stuff.invoke(query)
+response = index.query(query, llm=llm)
+index = VectorstoreIndexCreator(
+    vectorstore_cls=DocArrayInMemorySearch,
+    embedding=embeddings,
+).from_loaders([loader])
+```
+
+## RetrievalQA Chain
+
+The `RetrievalQA` chain encapsulates the retrieval and question answering process, making it easy to customize components like embeddings, vector stores, and chain types.
+
+## Chain Types
+
+LangChain offers various chain types for different scenarios:
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/l9uhet9xr7ntoa38lqp5.png)
+
+
+
+* **Stuff**: Combines all documents into one prompt (used in the example above).
+    
+* **Map-reduce**: Processes document chunks independently, then summarizes.
+    
+* **Refine**: Builds upon previous answers iteratively.
+    
+* **Map-rerank**: Scores each document, selects the highest score.
+    
+
+## Conclusion
+
+Using LLMs for question answering over documents has never been easier. With LangChain, you can use cutting-edge techniques like embeddings and vector stores to make your LLMs more flexible and adaptable. Whether you're building a virtual assistant, enhancing product search, or exploring new frontiers in natural language processing, the possibilities are endless.

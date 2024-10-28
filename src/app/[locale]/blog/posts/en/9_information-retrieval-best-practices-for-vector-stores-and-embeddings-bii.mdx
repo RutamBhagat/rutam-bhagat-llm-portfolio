@@ -1,0 +1,220 @@
+---
+title: "Vector stores and embeddings: Dive into the concept of embeddings and explore vector store integrations within LangChain"
+publishedAt: "26/03/2024, 01:43 pm"
+---
+
+![Vector stores and embeddings: Dive into the concept of embeddings and explore vector store integrations within LangChain](null)
+
+Have you ever wished you could just ask an application a question and have it instantly retrieve the relevant information from a massive database of documents? Well, that's exactly what vector stores and embeddings can help you achieve.
+
+At their core, vector stores are databases designed specifically for storing and retrieving embeddings – numerical representations of text that capture the semantic meaning of the content. Embeddings are created using machine learning models, and they have a remarkable property: embeddings of similar texts will be closer together in the high-dimensional vector space, while embeddings of dissimilar texts will be farther apart.
+
+This might sound a bit abstract, so let's break it down with an example. Imagine you have two sentences: "I like dogs" and "I like canines." These sentences are essentially saying the same thing, just with different wording. If we create embeddings for these sentences, their embeddings will be very close to each other in the vector space, indicating their semantic similarity.
+
+On the other hand, if we have a sentence like "The weather is ugly outside," its embedding will be much farther away from the embeddings of the dog-related sentences, reflecting the fact that it's discussing a completely different topic.
+
+By storing these embeddings in a vector store, we can perform incredibly efficient similarity searches, allowing us to retrieve the most relevant documents or chunks of text for a given query. It's like having a search engine that understands the actual meaning behind the words, not just the words themselves.
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/26qffd11bajfgov3rm6l.png)
+
+##Setting Up the Environment
+Before we can dive into the world of vector stores and embeddings, we need to set up our environment and load some data. For this example, we'll be using a set of CS229 lecture notes in PDF format.
+
+First, we'll import the necessary libraries and load the PDF files:
+
+```
+from langchain.document_loaders import PyPDFLoader
+
+# Load PDF
+loaders = [
+    # Duplicate documents on purpose - messy data
+    PyPDFLoader("docs/cs229_lectures/MachineLearning-Lecture01.pdf"),
+    PyPDFLoader("docs/cs229_lectures/MachineLearning-Lecture01.pdf"),
+    PyPDFLoader("docs/cs229_lectures/MachineLearning-Lecture02.pdf"),
+    PyPDFLoader("docs/cs229_lectures/MachineLearning-Lecture03.pdf")
+]
+docs = []
+for loader in loaders:
+    docs.extend(loader.load())
+
+```
+Notice that we've intentionally included a duplicate copy of the first lecture PDF. This is to simulate a common real-world scenario where data can be messy and duplicated, which can cause issues that we'll address later.
+
+Next, we'll split the documents into smaller, more manageable chunks using a recursive character text splitter:
+
+```
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=1500,
+    chunk_overlap=150
+)
+
+splits = text_splitter.split_documents(docs)
+
+```
+This step is crucial because it ensures that our embeddings capture the semantic meaning of smaller, more focused chunks of text, rather than trying to represent entire documents, which can be too broad and lead to less accurate similarity comparisons.
+
+After splitting the documents, we end up with over 200 individual chunks, each containing a few paragraphs or sections from the original PDFs.
+##Creating Embeddings
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/tov71c18kdxb3j5ejyjc.png)
+Now that we have our document chunks, it's time to create embeddings for each one. I'll be using the OpenAI embeddings model, which is a pre-trained transformer model that can create high-quality embeddings for text data:
+
+```
+from langchain.embeddings.openai import OpenAIEmbeddings
+embedding = OpenAIEmbeddings()
+
+```
+But before we dive into creating embeddings for our document chunks, let's take a moment to understand how embeddings work by playing with a few examples.
+
+```
+codesentence1 = "i like dogs"
+sentence2 = "i like canines"
+sentence3 = "the weather is ugly outside"
+
+embedding1 = embedding.embed_query(sentence1)
+embedding2 = embedding.embed_query(sentence2)
+embedding3 = embedding.embed_query(sentence3)
+
+import numpy as np
+
+print(np.dot(embedding1, embedding2))  # Output: 0.9631227602970008
+print(np.dot(embedding1, embedding3))  # Output: 0.7703256969056435
+print(np.dot(embedding2, embedding3))  # Output: 0.7591626802162056
+
+```
+As you can see, the embeddings for "i like dogs" and "i like canines" have a very high similarity score (0.96), indicating that the model recognizes their semantic similarity. On the other hand, the embeddings for these sentences have much lower similarity scores (around 0.76) when compared to the unrelated "the weather is ugly outside" sentence.
+
+This ability to capture semantic meaning is what makes embeddings so powerful for information retrieval tasks.
+
+Now that we understand the basics of embeddings, let's create embeddings for all our document chunks:
+
+```
+from langchain.vectorstores import Chroma
+import os
+
+def delete_directory(directory):
+    """Recursively deletes a directory and its contents."""
+    for entry in os.listdir(directory):
+        entry_path = os.path.join(directory, entry)
+        if os.path.isdir(entry_path):
+            delete_directory(entry_path)
+        else:
+            os.remove(entry_path)
+    os.rmdir(directory)
+
+persist_directory = 'docs/chroma/'
+delete_directory("./docs/chroma")  # remove old database files if any
+
+vectordb = Chroma.from_documents(
+    documents=splits,
+    embedding=embedding,
+    persist_directory=persist_directory
+)
+
+```
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/p2ravlegjfi9rgll5nka.png)
+We're using a vector store called Chroma, which is a lightweight, in-memory database designed specifically for storing and querying embeddings. By passing our document chunks and the embeddings model to the Chroma.from_documents method, we create a new vector store populated with the embeddings for each chunk.
+
+We also specify a persist_directory to allow us to save the vector store to disk, so we can easily load and use it later without having to recreate it every time.
+
+##Similarity Search
+With our vector store set up and populated with embeddings, we can now perform similarity searches to retrieve the most relevant chunks of text for a given query.
+
+Let's start with a simple example:
+
+```
+question = "is there an email i can ask for help"
+docs = vectordb.similarity_search(question, k=3)
+print(docs[0].page_content)
+
+# Output: "cs229-qa@cs.stanford.edu. 
+# This goes to an acc ount that's read by all the TAs and me. 
+# So \nrather than sending us email individually, if you
+# [Note: the output was too long to be included in the blog completely]
+
+```
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/jgtprxtcg6zodwo27bbc.png)
+In this case, we're asking if there's an email address we can use to get help with the course material. By passing this question to the similarity_search method, along with k=3 to specify that we want the top 3 most relevant results, we get back a list of Document objects containing the relevant chunks of text.
+
+The output shows that the first result contains the email address cs229-qa@cs.stanford.edu, which is exactly what we were looking for.
+
+But wait, there's more! Vector stores and embeddings can handle much more complex queries and scenarios.
+##Failure Modes and Edge Cases
+While the basic similarity search capabilities of vector stores are incredibly powerful, there are some edge cases and failure modes that we need to be aware of and address.
+###Duplicate Data
+Remember how we intentionally included a duplicate copy of the first lecture PDF? Well, take a look at what happens when we search for information about MATLAB:
+
+```
+pythonCopy codequestion = "what did they say about matlab?"
+docs = vectordb.similarity_search(question, k=5)
+print(docs[0].page_content)
+# Output: Document(page_content='those homeworks will be done in either MATLA B
+# or in Octave, which is sort of — I \nknow some people call it a free
+# [Note: the output was too long to be included in the blog completely]
+print(docs[1].page_content)
+# Output: Document(page_content='those homeworks will be done in either MATLA B
+# or in Octave, which is sort of — I \nknow some people call it a free
+# [Note: the output was too long to be included in the blog completely]
+
+```
+You'll notice that the first two results are identical! This is because our vector store contains duplicate chunks of text, and the similarity search algorithm has no way of knowing that these are duplicates.
+
+In a real-world scenario, this could lead to redundant and potentially confusing information being presented to the end-user. Ideally, we want to retrieve relevant and distinct chunks of text.
+
+###Structured Information
+Another failure mode we can observe is when the query requires understanding structured information that isn't captured by the embeddings alone.
+
+```
+question = "what did they say about regression in the third lecture?"
+docs = vectordb.similarity_search(question, k=5)
+for doc in docs:
+    print(doc.metadata)
+
+#Output: {'source': 'docs/cs229_lectures/MachineLearning-Lecture03.pdf', 'page': 0}
+# {'source': 'docs/cs229_lectures/MachineLearning-Lecture03.pdf', 'page': 14}
+# {'source': 'docs/cs229_lectures/MachineLearning-Lecture02.pdf', 'page': 0}
+# {'source': 'docs/cs229_lectures/MachineLearning-Lecture03.pdf', 'page': 6}
+# {'source': 'docs/cs229_lectures/MachineLearning-Lecture01.pdf', 'page': 8}
+
+```
+In this case, we're asking specifically for information about regression from the third lecture. However, the results we get back include chunks from the first and second lectures as well.
+
+This is because the embeddings only capture the semantic meaning of the text, not the structured information about which lecture the text comes from. To a pure similarity search algorithm, a chunk discussing regression from any lecture is equally relevant.
+##Addressing Failure Modes
+While these failure modes might seem daunting, but there are techniques we can employ to address them and ensure our vector store-based applications are robust and reliable.
+###Deduplication and Maximal Marginal Relevance (MMR)
+To handle the issue of duplicate data, we can use techniques like deduplication and Maximal Marginal Relevance (MMR).
+
+Deduplication is a straightforward concept: we simply identify and remove any duplicate chunks of text before adding them to the vector store. This can be done by comparing the text content of each chunk, or by using more advanced techniques like document fingerprinting or locality-sensitive hashing.
+
+MMR, on the other hand, is a more sophisticated approach that aims to retrieve not only relevant results but also diverse results. The algorithm balances relevance and diversity by considering both the similarity of a candidate chunk to the query and its dissimilarity to the already retrieved chunks.
+
+By incorporating MMR into our similarity search process, we can ensure that we get a diverse set of relevant chunks, minimizing redundancy and increasing the overall usefulness of the retrieved information.
+##Incorporating Structured Information
+To address the failure mode related to structured information, we need to find ways to incorporate that information into the retrieval process.
+
+One approach is to use metadata filtering. In our example, we could filter the results to include only chunks that have metadata indicating they come from the third lecture. This can be done by adding an additional filtering step after the initial similarity search.
+
+Another approach is to use vector store embeddings that incorporate structured information. Some vector stores, like FAISS and Weaviate, allow you to store and query not just text embeddings but also structured metadata embeddings. By combining these embeddings, you can perform searches that consider both semantic similarity and structured information.
+##Balancing Relevance and Diversity
+Finally, it's important to strike the right balance between retrieving highly relevant results and maintaining diversity in the retrieved chunks.
+
+If we set the k parameter (the number of chunks to retrieve) too low, we might miss out on important information. On the other hand, setting k too high can lead to an overwhelming amount of information, some of which may be only tangentially relevant.
+
+The optimal value of k will depend on the specific use case and the nature of the data. In general, it's a good idea to start with a moderate value (e.g., k=5 or k=10) and adjust based on the quality of the retrieved results.
+
+You can also consider implementing dynamic adjustment of k based on the similarity scores of the retrieved chunks. For example, you could continue retrieving chunks until the similarity score drops below a certain threshold, indicating that the remaining chunks are likely not very relevant.
+##Putting It All Together
+By combining the techniques we've discussed – deduplication, MMR, metadata filtering, and dynamic adjustment of k – we can build robust and reliable vector store-based applications that can handle complex queries, messy data, and structured information.
+
+Of course, implementing these techniques requires some additional work, but the payoff is well worth it. Imagine being able to ask questions and instantly retrieve the most relevant and diverse information from massive datasets, without being bogged down by redundancy or irrelevant results.
+##Conclusion
+In this blog post, I've explored vector stores and embeddings, exploring how they work and why they're essential for building chatbots and other natural language processing applications.
+
+And explained how to load and split documents, create embeddings, and set up a vector store using the Chroma library. I've also explaind how to perform similarity searches and retrieve relevant chunks of text based on natural language queries.
+
+I've also explained the failure modes and edge cases that can arise when using vector stores and embeddings, and we've discussed techniques for addressing these issues, including deduplication, Maximal Marginal Relevance (MMR), metadata filtering, and dynamic adjustment of the number of retrieved chunks.

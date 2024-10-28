@@ -1,0 +1,169 @@
+---
+title: "Question Answering: Build a one-pass question-answering solution"
+publishedAt: "27/03/2024, 09:54 am"
+---
+
+![Question Answering: Build a one-pass question-answering solution](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/buzzex7x8g3xp3yxo2at.jpg)
+
+Have you ever wished you could have a conversation with the data and information in your documents? Think about being able to ask questions and receive precise, relevant answers from your database. In this blog post, I'll explain question answering using natural language processing (NLP) and machine learning. I'll dive into the process of loading and retrieving relevant documents, setting up language models, and crafting prompts to extract the information you need. I'll also explain the secrets of different chain types and talk about the limitations of conversational AI.
+
+## **Setting the Stage: Document Loading and Retrieval**
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/970ao5szve1rgtu75lil.png)
+
+
+
+Before we can use language models for question answering, we need to lay the groundwork by loading and retrieving the relevant documents. In our case, we'll be using a vector database called Chroma to store and manage our documents.
+
+```python
+from langchain.vectorstores import Chroma
+from langchain.embeddings.openai import OpenAIEmbeddings
+
+persist_directory = 'docs/chroma/'
+embedding = OpenAIEmbeddings()
+vectordb = Chroma(persist_directory=persist_directory, embedding_function=embedding)
+```
+
+With these few lines of code, we've created a vector database that can store and index our documents. But how do we retrieve the relevant information for a specific query? That's where similarity search comes into play.
+
+```python
+question = "What are major topics for this class?"
+docs = vectordb.similarity_search(question, k=3)
+print(len(docs))
+# Output: 3
+```
+
+By using the `similarity_search` method, we can retrieve the top `k` documents that are most relevant to our question. In this case, we're retrieving the three most relevant documents. It's like having a personal research assistant sifting through piles of information to find exactly what you need.
+
+Now that we have our relevant documents, it's time to introduce the language model. In our case, I'll be using the ChatOpenAI model, specifically the GPT-3.5 variant.
+
+```python
+from langchain.chat_models import ChatOpenAI
+
+llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
+```
+
+By setting the temperature to zero, we're instructing the language model to provide factual, low-variability answers – perfect for our question answering needs.
+
+## **The RetrievalQA Chain: Bridging Documents and Questions**
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/ljcrvfmq3v03n0nwfcu4.png)
+
+
+
+At this point, you might be wondering, "How do I connect the retrieved documents with the language model to get my answers?" I'll be doing this by using RetrievalQA.
+
+```python
+from langchain.chains import RetrievalQA
+
+qa_chain = RetrievalQA.from_chain_type(llm, retriever=vectordb.as_retriever())
+result = qa_chain({"query": question})
+print(result["result"])
+# Output: 'The major topics for this class seem to include machine learning, statistics, and algebra.'
+# Note: could not use the whole output in this blog
+```
+
+The RetrievalQA chain takes care of the heavy lifting, passing our question and retrieved documents to the language model, and serving up the answer.
+
+## **Customizing the Prompt: Tailoring the Question-Answer Experience**
+
+But what if you want to fine-tune the way the language model handles your questions and documents? That's where prompt customization comes into play.
+
+```python
+from langchain.prompts import PromptTemplate
+
+template = """Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer. Use three sentences maximum. Keep the answer as concise as possible. Always say "thanks for asking!" at the end of the answer. 
+{context}
+Question: {question}
+Helpful Answer:"""
+
+QA_CHAIN_PROMPT = PromptTemplate.from_template(template)
+
+qa_chain = RetrievalQA.from_chain_type(
+    llm,
+    retriever=vectordb.as_retriever(),
+    return_source_documents=True,
+    chain_type_kwargs={"prompt": QA_CHAIN_PROMPT}
+)
+question = "Is probability a class topic?"
+result = qa_chain({"query": question})
+result["result"]
+# Output: 'Yes, probability is a class topic assumed to be familiar to students, as mentioned by the instructor. Thanks for asking!'
+```
+
+By defining a custom prompt template, you can guide the language model on how to structure its responses, set expectations, and even inject a bit of personality (like asking it to say "thanks for asking!" at the end). It's like giving your virtual assistant a set of manners and etiquette guidelines.
+
+## **Unveiling the Chain Types: Strategies for Question Answering**
+
+
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/jadp3iq8j6qnk8qqllot.png)
+
+
+
+But what if you have a massive document repository, and the default "stuff" technique (which simply crams all the documents into the prompt) isn't cutting it because of the limited llm context window? Fear not, for we have a few tricks up our sleeves: the map-reduce, refine, and map-rerank chain types.
+
+```python
+qa_chain_mr = RetrievalQA.from_chain_type(
+    llm,
+    retriever=vectordb.as_retriever(),
+    chain_type="map_reduce"
+)
+result = qa_chain_mr({"query": question})
+result["result"]
+# Output: 'Yes, probability is a class topic in the document.'
+```
+
+The map-reduce chain type is a divide-and-conquer approach, where each document is processed individually by the language model, and the results are then combined into a final answer. This technique is particularly useful when dealing with a large number of documents that exceed the prompt's context window.
+
+On the other hand, the refine chain type takes a more iterative approach, allowing the language model to refine its answer as it processes each document sequentially.
+
+```python
+qa_chain_refine = RetrievalQA.from_chain_type(
+    llm,
+    retriever=vectordb.as_retriever(),
+    chain_type="refine"
+)
+result = qa_chain_mr({"query": question})
+result["result"]
+# Output: 'The additional context provided does not directly impact the original answer regarding probability being a class topic.
+# Note: could not use the whole output in this blog
+```
+
+This technique can be especially powerful when information is spread across multiple documents, as the language model can gradually build upon its understanding with each iteration.
+
+## **The Conversational Conundrum: Addressing the Lack of Memory**
+
+As exciting as all of this is, there's one limitation we've yet to address: the lack of conversational history. You see, our current setup treats each question as a standalone entity, without any memory or context from previous questions or answers.
+
+```python
+qa_chain = RetrievalQA.from_chain_type(llm, retriever=vectordb.as_retriever())
+
+question = "Is probability a class topic?"
+result = qa_chain({"query": question})
+print(result["result"])
+# Output: 'Yes, probability is a class topic in the course being described. 
+# The instructor assumes familiarity with basic probability and statistics.'
+# Note: could not use the whole output in this blog
+
+question = "Why are those prerequisites needed?"
+result = qa_chain({"query": question})
+print(result["result"])
+# Output: ''The prerequisites mentioned in the context are needed for the machine learning class 
+# because the instructor assumes that students already 
+# have a basic knowledge of computer science and computer skills.
+# Note: could not use the whole output in this blog
+```
+
+In the example above, the second question ("Why are those prerequisites needed?") is completely disconnected from the context established by the first question and answer. It's like having a conversation with someone who suffers from short-term memory loss – frustrating and unfulfilling.
+
+But fear not, In the next blog, I'll dive into the memory and how to upgrade our language models with the ability to maintain conversational context.
+
+## Conclusion:
+
+In this blog post, we've explored the question answering with language models and document retrieval. We've learned how to load and retrieve relevant documents, initialize language models, and use the RetrievalQA chain to bridge the gap between natural language queries and textual data.
+
+But that's not all – I've also explored the art of prompt customization and different techniques to customize the question-answer experience to our liking. I've dived into different chain types, each with its own strengths and weaknesses.
+
+In our next post, we'll tackle the issue of preserving conversational history and memory.
