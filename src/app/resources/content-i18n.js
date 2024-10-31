@@ -55,9 +55,11 @@ const home = {
   headline: <>AI-powered solutions and fullstack development</>,
   subline: (
     <>
-      I'm Rutam, a developer focused on crafting efficient
-      <br /> and scalable web applications. Outside of work, I explore new
-      technologies and contribute to open-source projects.
+      I'm Rutam a GenAI Backend Developer focused on crafting efficient
+      <br />& scalable AI solutions. I specialize in building AI Agents, RAG
+      Systems, and optimizing LLMs through fine-tuning & quantization. Outside
+      of work, I explore emerging AI technologies and contribute to open-source
+      projects 🚀
     </>
   ),
 };
