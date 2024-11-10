@@ -59,33 +59,64 @@ BrochureCraft is perfect for:
 
 ## Getting Started
 
-1. **Clone the Repositories**
-   ```bash
-   ##### for frontend
-   git clone https://github.com/RutamBhagat/website_summarizer_frontend
-   ##### for backend
-   git clone https://github.com/RutamBhagat/website_summarizer
-   ```
-2. **Environment Setup**
-   - Add your OpenAI API key in `.env` files in both repositories.
-3. **Install Dependencies**
+Follow these steps to set up and run the BrochureCraft application locally.
 
+### Prerequisites
+
+- Ensure you have [Node.js](https://nodejs.org/) and [Python](https://www.python.org/) installed on your machine.
+- Install [Bun](https://bun.sh/) for JavaScript package management.
+- Install [Pipx](https://pypa.github.io/pipx/) for Python package management.
+
+### Clone the Repositories
+
+1. **Clone the Frontend Repository**
    ```bash
-   # for frontend
+   git clone https://github.com/RutamBhagat/website_summarizer_frontend
    cd website_summarizer_frontend
-   npm i -g bun
+   ```
+
+2. **Environment Setup for Frontend**
+   - Create a `.env` file in the `website_summarizer_frontend` directory.
+   - Add your OpenAI API key to the `.env` file.
+
+3. **Install Frontend Dependencies**
+   ```bash
+   # Install Bun globally
+   npm install -g bun
+
+   # Install frontend dependencies
    bun install
-   # for backend
-   cd ../website_summarizer
+   ```
+
+4. **Start the Frontend Development Server**
+   ```bash
+   bun run dev
+   ```
+
+5. **Clone the Backend Repository**
+   ```bash
+   cd ..  # Go back to the previous directory
+   git clone https://github.com/RutamBhagat/website_summarizer
+   cd website_summarizer
+   ```
+
+6. **Environment Setup for Backend**
+   - Create a `.env` file in the `website_summarizer` directory.
+   - Add your OpenAI API key to the `.env` file.
+
+7. **Install Backend Dependencies**
+   ```bash
+   # Install PDM for Python dependency management
    pipx install pdm
+
+   # Install backend dependencies
    pdm install
    ```
 
-4. **Run the Application**
-   ##### for frontend
-   - Start the frontend: `bun run dev`
-   ##### for backend
-   - Start the backend: `pdm run uvicorn app.main:app --reload`
+8. **Start the Backend Server**
+   ```bash
+   pdm run uvicorn app.main:app --reload
+   ```
 
 ## Outcome
 
