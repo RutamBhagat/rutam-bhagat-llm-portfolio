@@ -68,23 +68,64 @@ The development process provided valuable insights into:
 
 ## Getting Started
 
-1. **Clone the Repositories**
+Follow these steps to set up and run the TalkSpark application locally.
 
+### Prerequisites
+
+- Ensure you have [Node.js](https://nodejs.org/) and [Python](https://www.python.org/) installed on your machine.
+- Install [Bun](https://bun.sh/) for JavaScript package management.
+- Install [Pipx](https://pypa.github.io/pipx/) for Python package management.
+
+### Clone the Repositories
+
+1. **Clone the Frontend Repository**
    ```bash
-   # Frontend
    git clone https://github.com/RutamBhagat/talk_spark_frontend
-   # Backend
-   git clone https://github.com/RutamBhagat/talk_spark_langgraph
+   cd talk_spark_frontend
    ```
 
-2. **Configure Environment**
+2. **Environment Setup for Frontend**
+   - Create a `.env` file in the `talk_spark_frontend` directory.
+   - Add your OpenAI API key to the `.env` file.
 
-   - Set up necessary API keys
-   - Configure social media integration settings
+3. **Install Frontend Dependencies**
+   ```bash
+   # Install Bun globally
+   npm install -g bun
 
-3. **Install Dependencies**
-   - Follow repository-specific setup instructions
-   - Ensure all required packages are installed
+   # Install frontend dependencies
+   bun install
+   ```
+
+4. **Start the Frontend Development Server**
+   ```bash
+   bun run dev
+   ```
+
+5. **Clone the Backend Repository**
+   ```bash
+   cd ..  # Go back to the previous directory
+   git clone https://github.com/RutamBhagat/talk_spark_langgraph
+   cd talk_spark_langgraph
+   ```
+
+6. **Environment Setup for Backend**
+   - Create a `.env` file in the `talk_spark_langgraph` directory.
+   - Add your OpenAI API key to the `.env` file.
+
+7. **Install Backend Dependencies**
+   ```bash
+   # Install PDM for Python dependency management
+   pipx install pdm
+
+   # Install backend dependencies
+   pdm install
+   ```
+
+8. **Start the Backend Server**
+   ```bash
+   pdm run uvicorn app.main:app --reload
+   ```
 
 ## Outcome
 

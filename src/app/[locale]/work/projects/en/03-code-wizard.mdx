@@ -72,21 +72,64 @@ Building Code Wizard was a fantastic learning journey, offering valuable lessons
 
 ## Getting Started
 
-1. **Clone the Repositories**
+Follow these steps to set up and run the Code Wizard application locally.
+
+### Prerequisites
+
+- Ensure you have [Node.js](https://nodejs.org/) and [Python](https://www.python.org/) installed on your machine.
+- Install [Bun](https://bun.sh/) for JavaScript package management.
+- Install [Pipx](https://pypa.github.io/pipx/) for Python package management.
+
+### Clone the Repositories
+
+1. **Clone the Frontend Repository**
    ```bash
-   # Frontend
    git clone https://github.com/RutamBhagat/code_wizard_frontend
-   # Backend
-   git clone https://github.com/RutamBhagat/Code-Wizard-LangGraph-C_RAG
+   cd code_wizard_frontend
    ```
 
-2. **Configure Environment**
-   - Set up necessary API keys and configurations for LangChain and models
-   - Adjust settings for vector databases and data storage
+2. **Environment Setup for Frontend**
+   - Create a `.env` file in the `code_wizard_frontend` directory.
+   - Add your OpenAI API key to the `.env` file.
 
-3. **Install Dependencies**
-   - Follow setup instructions in the repos to install dependencies
-   - Use Python and npm to ensure the backend and frontend are configured properly
+3. **Install Frontend Dependencies**
+   ```bash
+   # Install Bun globally
+   npm install -g bun
+
+   # Install frontend dependencies
+   bun install
+   ```
+
+4. **Start the Frontend Development Server**
+   ```bash
+   bun run dev
+   ```
+
+5. **Clone the Backend Repository**
+   ```bash
+   cd ..  # Go back to the previous directory
+   git clone https://github.com/RutamBhagat/Code-Wizard-LangGraph-C_RAG
+   cd Code-Wizard-LangGraph-C_RAG
+   ```
+
+6. **Environment Setup for Backend**
+   - Create a `.env` file in the `Code-Wizard-LangGraph-C_RAG` directory.
+   - Add your OpenAI API key to the `.env` file.
+
+7. **Install Backend Dependencies**
+   ```bash
+   # Install PDM for Python dependency management
+   pipx install pdm
+
+   # Install backend dependencies
+   pdm install
+   ```
+
+8. **Start the Backend Server**
+   ```bash
+   pdm run uvicorn app.main:app --reload
+   ```
 
 ## Outcome
 
