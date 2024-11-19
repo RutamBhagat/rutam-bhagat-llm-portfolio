@@ -126,17 +126,6 @@ export const Header = () => {
               </Flex>
             </ToggleButton>
           )}
-          {routes["/blog"] && (
-            <ToggleButton
-              prefixIcon="book"
-              href={`/${params?.locale}/blog`}
-              selected={pathname.startsWith("/blog")}
-            >
-              <Flex paddingX="2" hide="s">
-                {blog.label}
-              </Flex>
-            </ToggleButton>
-          )}
           {routes["/fullstack"] && (
             <ToggleButton
               prefixIcon="code"
@@ -145,6 +134,17 @@ export const Header = () => {
             >
               <Flex paddingX="2" hide="s">
                 {fullstack.label}
+              </Flex>
+            </ToggleButton>
+          )}
+          {routes["/blog"] && (
+            <ToggleButton
+              prefixIcon="book"
+              href={`/${params?.locale}/blog`}
+              selected={pathname.startsWith("/blog")}
+            >
+              <Flex paddingX="2" hide="s">
+                {blog.label}
               </Flex>
             </ToggleButton>
           )}
