@@ -210,7 +210,7 @@ const blog = {
 };
 
 const genai = {
-  label: "Genai",
+  label: "Gen AI",
   title: "My projects",
   description: `LLM and dev projects by ${person.name}`,
   // Create new project pages by adding a new .mdx file to app/blog/posts

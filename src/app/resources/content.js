@@ -55,7 +55,7 @@ const home = {
   headline: <>AI-powered solutions and fullstack development</>,
   subline: (
     <>
-      I'm Rutam a GenAI Backend Developer focused on crafting efficient
+      I'm Rutam a Gen AI Backend Developer focused on crafting efficient
       <br />& scalable AI solutions. I specialize in building AI Agents, RAG
       Systems, and optimizing LLMs through fine-tuning & quantization. Outside
       of work, I explore emerging AI technologies and contribute to open-source
@@ -193,7 +193,7 @@ const blog = {
 };
 
 const genai = {
-  label: "Genai",
+  label: "Gen AI",
   title: "My projects",
   description: `LLM and dev projects by ${person.name}`,
   // Create new project pages by adding a new .mdx file to app/blog/posts
