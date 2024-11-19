@@ -9,7 +9,7 @@ import {
   genai,
 } from "./content";
 
-import { createI18nContent } from "./content-i18n";
+import { createI18nContent } from "./content-i18n.js"; // Add .js extension
 import { i18n } from "./config";
 
 const renderContent = (t) => {

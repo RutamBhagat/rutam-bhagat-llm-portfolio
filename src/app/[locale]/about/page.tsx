@@ -9,19 +9,20 @@ import {
   Tag,
   Text,
 } from "@/once-ui/components";
-import { baseURL, renderContent } from "@/app/resources";
-import TableOfContents from "@/components/about/TableOfContents";
-import styles from "@/components/about/about.module.scss";
-import { getTranslations, unstable_setRequestLocale } from "next-intl/server";
-import { useTranslations } from "next-intl";
 import {
-  ReactElement,
+  AwaitedReactNode,
   JSXElementConstructor,
+  Key,
+  ReactElement,
   ReactNode,
   ReactPortal,
-  AwaitedReactNode,
-  Key,
 } from "react";
+import { baseURL, renderContent } from "@/app/resources";
+import { getTranslations, unstable_setRequestLocale } from "next-intl/server";
+
+import TableOfContents from "@/components/about/TableOfContents";
+import styles from "@/components/about/about.module.scss";
+import { useTranslations } from "next-intl";
 
 export async function generateMetadata({
   params: { locale },
@@ -111,7 +112,10 @@ export default function About({
                 (item: { link: string }) =>
                   item.link && !item.link.startsWith("mailto:")
               ) // Filter out empty links and email links
-              .map((item: string) => item.link),
+              .map(
+                (item: { name: string; icon: string; link: string }) =>
+                  item.link
+              ),
             worksFor: {
               "@type": "Organization",
               name: about.work.experiences[0].company || "",
@@ -281,40 +285,16 @@ export default function About({
                 {about.work.experiences.map(
                   (
                     experience: {
-                      company:
-                        | string
-                        | number
-                        | bigint
-                        | boolean
-                        | ReactElement<any, string | JSXElementConstructor<any>>
-                        | Iterable<ReactNode>
-                        | Promise<AwaitedReactNode>
-                        | null
-                        | undefined;
-                      role:
-                        | string
-                        | number
-                        | bigint
-                        | boolean
-                        | ReactElement<any, string | JSXElementConstructor<any>>
-                        | Iterable<ReactNode>
-                        | ReactPortal
-                        | Promise<AwaitedReactNode>
-                        | null
-                        | undefined;
-                      timeframe:
-                        | string
-                        | number
-                        | bigint
-                        | boolean
-                        | ReactElement<any, string | JSXElementConstructor<any>>
-                        | Iterable<ReactNode>
-                        | ReactPortal
-                        | Promise<AwaitedReactNode>
-                        | null
-                        | undefined;
-                      achievements: string[];
-                      images: any[];
+                      company: string;
+                      role: string;
+                      timeframe: string;
+                      achievements: ReactElement[];
+                      images: {
+                        src: string;
+                        alt: string;
+                        width: number;
+                        height: number;
+                      }[];
                     },
                     index: any
                   ) => (
@@ -351,7 +331,7 @@ export default function About({
                       </Text>
                       <Flex as="ul" direction="column" gap="16">
                         {experience.achievements.map(
-                          (achievement: string, index: any) => (
+                          (achievement: ReactElement, index: any) => (
                             <Text
                               as="li"
                               variant="body-default-m"

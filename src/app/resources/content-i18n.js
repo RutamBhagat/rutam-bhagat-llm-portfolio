@@ -223,4 +223,27 @@ const fullstack = {
   description: `Fullstack projects by ${person.name}`,
 };
 
-export { person, social, newsletter, home, about, blog, genai, fullstack };
+const createI18nContent = (t) => {
+  return {
+    person,
+    social,
+    newsletter,
+    home,
+    about,
+    blog,
+    genai,
+    fullstack,
+  };
+};
+
+export {
+  person,
+  social,
+  newsletter,
+  home,
+  about,
+  blog,
+  genai,
+  fullstack,
+  createI18nContent,
+};
