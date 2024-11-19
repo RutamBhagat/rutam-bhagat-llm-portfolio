@@ -139,7 +139,7 @@ export const Header = () => {
           )}
           {routes["/fullstack"] && (
             <ToggleButton
-              prefixIcon="fullstack"
+              prefixIcon="code"
               href={`/${params?.locale}/fullstack`}
               selected={pathname.startsWith("/fullstack")}
             >
