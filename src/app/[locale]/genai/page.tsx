@@ -2,7 +2,7 @@ import { baseURL, renderContent } from "@/app/resources";
 import { getTranslations, unstable_setRequestLocale } from "next-intl/server";
 
 import { Flex } from "@/once-ui/components";
-import { Projects } from "@/components/work/Projects";
+import { Projects } from "@/components/genai/Projects";
 import { getPosts } from "@/app/utils";
 import { useTranslations } from "next-intl";
 
