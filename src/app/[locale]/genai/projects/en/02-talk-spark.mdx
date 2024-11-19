@@ -29,7 +29,7 @@ TalkSpark is an AI-powered tool designed to generate personalized conversation s
 
 ## Demo Video
 
-[Watch the Walkthrough](https://github.com/user-attachments/assets/c14feb87-ede0-4cf9-a8ab-65af7b7f06c2)
+https://github.com/user-attachments/assets/c14feb87-ede0-4cf9-a8ab-65af7b7f06c2
 
 ## Key Features
 
@@ -68,64 +68,55 @@ The development process provided valuable insights into:
 
 ## Getting Started
 
-Follow these steps to set up and run the TalkSpark application locally.
-
 ### Prerequisites
 
-- Ensure you have [Node.js](https://nodejs.org/) and [Python](https://www.python.org/) installed on your machine.
-- Install [Bun](https://bun.sh/) for JavaScript package management.
-- Install [Pipx](https://pypa.github.io/pipx/) for Python package management.
+- Node.js 18+
+- Python 3.10+
+- Docker (optional)
+- Git
 
-### Clone the Repositories
+### Frontend Setup
 
-1. **Clone the Frontend Repository**
-   ```bash
+```bash
+   # Clone repository
    git clone https://github.com/RutamBhagat/talk_spark_frontend
    cd talk_spark_frontend
-   ```
 
-2. **Environment Setup for Frontend**
-   - Create a `.env` file in the `talk_spark_frontend` directory.
-   - Add your OpenAI API key to the `.env` file.
+   # Install dependencies
+   npm install
 
-3. **Install Frontend Dependencies**
-   ```bash
-   # Install Bun globally
-   npm install -g bun
+   # Start development server
+   npm run dev
+```
 
-   # Install frontend dependencies
-   bun install
-   ```
+### Backend Setup
 
-4. **Start the Frontend Development Server**
-   ```bash
-   bun run dev
-   ```
-
-5. **Clone the Backend Repository**
-   ```bash
-   cd ..  # Go back to the previous directory
+```bash
+   # Backend
    git clone https://github.com/RutamBhagat/talk_spark_langgraph
    cd talk_spark_langgraph
-   ```
 
-6. **Environment Setup for Backend**
-   - Create a `.env` file in the `talk_spark_langgraph` directory.
-   - Add your OpenAI API key to the `.env` file.
-
-7. **Install Backend Dependencies**
-   ```bash
-   # Install PDM for Python dependency management
    pipx install pdm
 
-   # Install backend dependencies
    pdm install
-   ```
 
-8. **Start the Backend Server**
-   ```bash
-   pdm run uvicorn app.main:app --reload
-   ```
+   source .venv/bin/activate
+
+   pdm run uvicorn app.server:app --reload
+```
+
+#### If you want to setup using Docker
+
+```bash
+   # Remove the old container if present
+   docker rm talk-spark-container
+
+   # Build the new image with no cache
+   docker build --no-cache -t talk-spark-app .
+
+   # Run the container
+   docker run -d -p 8000:8000 --name talk-spark-container talk-spark-app
+```
 
 ## Outcome
 
@@ -133,4 +124,7 @@ TalkSpark successfully demonstrates the practical application of AI in facilitat
 
 # Screenshots
 
-![1](https://github.com/user-attachments/assets/70f39466-7ec9-4499-8cf4-31832ba2e0e0)
+![1](https://github.com/user-attachments/assets/158c009a-94e0-4bdb-bb72-f87886b30edd)
+![2](https://github.com/user-attachments/assets/a082e589-39ba-4ab8-9897-a8bf19e489f9)
+![3](https://github.com/user-attachments/assets/899708ac-2206-4f56-8635-a8e9109acf5f)
+![4](https://github.com/user-attachments/assets/c39f1f58-ad52-44f9-8610-ccfd8277b60c)
