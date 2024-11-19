@@ -1,0 +1,136 @@
+---
+title: "TalkSpark: AI-Powered Conversation Starter"
+publishedAt: "2024-11-04"
+summary: "Developed TalkSpark, an AI-powered conversation starter that generates personalized icebreakers by analyzing social media profiles using LangChain, LangGraph, and OpenAI integration."
+images:
+  - "https://github.com/user-attachments/assets/158c009a-94e0-4bdb-bb72-f87886b30edd"
+  - "https://github.com/user-attachments/assets/a082e589-39ba-4ab8-9897-a8bf19e489f9"
+  - "https://github.com/user-attachments/assets/899708ac-2206-4f56-8635-a8e9109acf5f"
+  - "https://github.com/user-attachments/assets/c39f1f58-ad52-44f9-8610-ccfd8277b60c"
+
+team:
+  - name: "Rutam Bhagat"
+    role: "Software Engineer"
+    avatar: "/images/avatar.jpg"
+    linkedIn: "https://github.com/RutamBhagat"
+---
+
+# TalkSpark: AI-Powered Conversation Starter
+
+## Overview
+
+TalkSpark is an AI-powered tool designed to generate personalized conversation starters. The application leverages OpenAI's capabilities to analyze social media profiles and create custom icebreakers, making it easier to initiate meaningful conversations with new connections.
+
+**Frontend:** [TalkSpark UI](https://talk-spark-frontend.vercel.app/)
+
+**Frontend Repo:** [Talk Spark Frontend](https://github.com/RutamBhagat/talk_spark_frontend)
+
+**Backend Repo:** [Talk Spark Backend](https://github.com/RutamBhagat/talk_spark_langgraph)
+
+## Demo Video
+
+[Watch the Walkthrough](https://github.com/user-attachments/assets/c14feb87-ede0-4cf9-a8ab-65af7b7f06c2)
+
+## Key Features
+
+- **Profile Analysis**: Automated system that analyzes social media profiles using LangGraph and custom tools
+- **Custom Icebreakers**: Generates personalized conversation starters based on profile data
+- **Multi-Platform Integration**: Supports various social media platforms through web scraping
+- **Modular Architecture**: Easily extensible to include additional data sources and language models
+
+## Technologies Used
+
+- **Frontend**: Next.js for a responsive user interface
+- **Backend**: FastAPI for efficient request handling
+- **AI Integration**: LangChain, LCEL, LangGraph for AI processing
+- **External Tools**: TavilyAPI for web search, jina.ai for persons data
+- **Development Tools**: Python for backend processing
+
+## Challenges and Learnings
+
+The development process provided valuable insights into:
+
+- Integrating multiple data sources and LLMs into a cohesive application
+- Creating custom agents and tools for LangGraph
+- Optimizing web scraping for reliability and performance
+- Implementing async processing and caching mechanisms
+
+## Optimizations
+
+1. **Caching System**
+
+   - Implemented profile and webpage caching to reduce redundant requests
+   - Improved response times through efficient data storage
+
+2. **Asynchronous Processing**
+   - Concurrent handling of web scraping and data processing
+   - Enhanced system responsiveness and scalability
+
+## Getting Started
+
+Follow these steps to set up and run the TalkSpark application locally.
+
+### Prerequisites
+
+- Ensure you have [Node.js](https://nodejs.org/) and [Python](https://www.python.org/) installed on your machine.
+- Install [Bun](https://bun.sh/) for JavaScript package management.
+- Install [Pipx](https://pypa.github.io/pipx/) for Python package management.
+
+### Clone the Repositories
+
+1. **Clone the Frontend Repository**
+   ```bash
+   git clone https://github.com/RutamBhagat/talk_spark_frontend
+   cd talk_spark_frontend
+   ```
+
+2. **Environment Setup for Frontend**
+   - Create a `.env` file in the `talk_spark_frontend` directory.
+   - Add your OpenAI API key to the `.env` file.
+
+3. **Install Frontend Dependencies**
+   ```bash
+   # Install Bun globally
+   npm install -g bun
+
+   # Install frontend dependencies
+   bun install
+   ```
+
+4. **Start the Frontend Development Server**
+   ```bash
+   bun run dev
+   ```
+
+5. **Clone the Backend Repository**
+   ```bash
+   cd ..  # Go back to the previous directory
+   git clone https://github.com/RutamBhagat/talk_spark_langgraph
+   cd talk_spark_langgraph
+   ```
+
+6. **Environment Setup for Backend**
+   - Create a `.env` file in the `talk_spark_langgraph` directory.
+   - Add your OpenAI API key to the `.env` file.
+
+7. **Install Backend Dependencies**
+   ```bash
+   # Install PDM for Python dependency management
+   pipx install pdm
+
+   # Install backend dependencies
+   pdm install
+   ```
+
+8. **Start the Backend Server**
+   ```bash
+   pdm run uvicorn app.main:app --reload
+   ```
+
+## Outcome
+
+TalkSpark successfully demonstrates the practical application of AI in facilitating human connections. The system provides efficient, personalized conversation starters while maintaining scalability and performance through optimized processing techniques.
+
+# Screenshots
+
+![1](https://github.com/user-attachments/assets/70f39466-7ec9-4499-8cf4-31832ba2e0e0)

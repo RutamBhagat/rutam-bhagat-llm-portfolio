@@ -1,18 +1,16 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { Flex, ToggleButton } from "@/once-ui/components";
+import { Locale, usePathname, useRouter } from "@/i18n/routing";
+import { display, routes } from "@/app/resources";
 import { useEffect, useState, useTransition } from "react";
 
-import { Flex, ToggleButton } from "@/once-ui/components";
-import styles from "@/components/Header.module.scss";
-
-import { routes, display } from "@/app/resources";
-
-import { routing } from "@/i18n/routing";
-import { Locale, usePathname, useRouter } from "@/i18n/routing";
-import { renderContent } from "@/app/resources";
-import { useTranslations } from "next-intl";
 import { i18n } from "@/app/resources/config";
+import { renderContent } from "@/app/resources";
+import { routing } from "@/i18n/routing";
+import styles from "@/components/Header.module.scss";
+import { useParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 type TimeDisplayProps = {
   timeZone: string;
@@ -64,7 +62,7 @@ export const Header = () => {
   }
 
   const t = useTranslations();
-  const { person, home, about, blog, work, gallery } = renderContent(t);
+  const { person, home, about, blog, work, fullstack } = renderContent(t);
 
   return (
     <Flex
@@ -139,14 +137,14 @@ export const Header = () => {
               </Flex>
             </ToggleButton>
           )}
-          {routes["/gallery"] && (
+          {routes["/fullstack"] && (
             <ToggleButton
-              prefixIcon="gallery"
-              href={`/${params?.locale}/gallery`}
-              selected={pathname.startsWith("/gallery")}
+              prefixIcon="fullstack"
+              href={`/${params?.locale}/fullstack`}
+              selected={pathname.startsWith("/fullstack")}
             >
               <Flex paddingX="2" hide="s">
-                {gallery.label}
+                {fullstack.label}
               </Flex>
             </ToggleButton>
           )}

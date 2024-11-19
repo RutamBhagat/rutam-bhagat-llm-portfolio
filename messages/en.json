@@ -65,10 +65,10 @@
         "title": "My projects",
         "description": "LLM and dev projects by Rutam."
     },
-    "gallery": {
-        "label": "Gallery",
-        "title": "My photo gallery",
-        "description": "A photo collection by Rutam."
+    "fullstack": {
+        "label": "Fullstack",
+        "title": "My Fullstack Projects",
+        "description": "Fullstack projects by Rutam."
     },
     "projectCard": {
         "label": "Read Case Study"

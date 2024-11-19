@@ -1,7 +1,7 @@
 import {
   about,
   blog,
-  gallery,
+  fullstack,
   home,
   newsletter,
   person,
@@ -24,7 +24,7 @@ const renderContent = (t) => {
       about,
       blog,
       work,
-      gallery,
+      fullstack,
     };
   }
 };
