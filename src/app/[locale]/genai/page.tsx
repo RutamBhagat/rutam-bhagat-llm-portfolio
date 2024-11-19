@@ -12,10 +12,10 @@ export async function generateMetadata({
   params: { locale: string };
 }) {
   const t = await getTranslations();
-  const { fullstack } = renderContent(t);
+  const { genai } = renderContent(t);
 
-  const title = fullstack.title;
-  const description = fullstack.description;
+  const title = genai.title;
+  const description = genai.description;
   const ogImage = `https://${baseURL}/og?title=${encodeURIComponent(title)}`;
 
   return {
@@ -25,7 +25,7 @@ export async function generateMetadata({
       title,
       description,
       type: "website",
-      url: `https://${baseURL}/${locale}/fullstack/`,
+      url: `https://${baseURL}/${locale}/genai/`,
       images: [
         {
           url: ogImage,
@@ -42,7 +42,7 @@ export async function generateMetadata({
   };
 }
 
-export default function Fullstack({
+export default function Genai({
   params: { locale },
 }: {
   params: { locale: string };
@@ -52,13 +52,13 @@ export default function Fullstack({
     "src",
     "app",
     "[locale]",
-    "fullstack",
+    "genai",
     "projects",
     locale,
   ]);
 
   const t = useTranslations();
-  const { person, fullstack } = renderContent(t);
+  const { person, genai } = renderContent(t);
 
   return (
     <Flex fillWidth maxWidth="m" direction="column">
@@ -69,8 +69,8 @@ export default function Fullstack({
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "CollectionPage",
-            headline: fullstack.title,
-            description: fullstack.description,
+            headline: genai.title,
+            description: genai.description,
             url: `https://${baseURL}/projects`,
             image: `${baseURL}/og?title=Design%20Projects`,
             author: {

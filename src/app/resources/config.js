@@ -12,15 +12,15 @@ const i18nOptions = {
 const routes = {
   "/": true,
   "/about": true,
-  "/work": true,
-  "/blog": true,
+  "/genai": true,
   "/fullstack": true,
+  "/blog": true,
 };
 
 // Enable password protection on selected routes
 // Set password in pages/api/authenticate.ts
 const protectedRoutes = {
-  "/work/automate-design-handovers-with-a-figma-to-code-pipeline": true,
+  "/genai/automate-design-handovers-with-a-figma-to-code-pipeline": true,
 };
 
 const effects = {

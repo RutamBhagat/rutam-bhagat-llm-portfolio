@@ -6,7 +6,7 @@ import {
   newsletter,
   person,
   social,
-  work,
+  genai,
 } from "./content";
 
 import { createI18nContent } from "./content-i18n";
@@ -23,7 +23,7 @@ const renderContent = (t) => {
       home,
       about,
       blog,
-      work,
+      genai,
       fullstack,
     };
   }

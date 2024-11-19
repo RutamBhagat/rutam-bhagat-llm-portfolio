@@ -209,12 +209,12 @@ const blog = {
   // All posts will be listed on the /blog route
 };
 
-const work = {
-  label: "Work",
+const genai = {
+  label: "Genai",
   title: "My projects",
   description: `LLM and dev projects by ${person.name}`,
   // Create new project pages by adding a new .mdx file to app/blog/posts
-  // All projects will be listed on the /home and /work routes
+  // All projects will be listed on the /home and /genai routes
 };
 
 const fullstack = {
@@ -223,4 +223,4 @@ const fullstack = {
   description: `Fullstack projects by ${person.name}`,
 };
 
-export { person, social, newsletter, home, about, blog, work, fullstack };
+export { person, social, newsletter, home, about, blog, genai, fullstack };

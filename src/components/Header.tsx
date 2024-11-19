@@ -62,7 +62,7 @@ export const Header = () => {
   }
 
   const t = useTranslations();
-  const { person, home, about, blog, work, fullstack } = renderContent(t);
+  const { person, home, about, blog, genai, fullstack } = renderContent(t);
 
   return (
     <Flex
@@ -115,14 +115,14 @@ export const Header = () => {
               </Flex>
             </ToggleButton>
           )}
-          {routes["/work"] && (
+          {routes["/genai"] && (
             <ToggleButton
               prefixIcon="grid"
-              href={`/${params?.locale}/work`}
-              selected={pathname.startsWith("/work")}
+              href={`/${params?.locale}/genai`}
+              selected={pathname.startsWith("/genai")}
             >
               <Flex paddingX="2" hide="s">
-                {work.label}
+                {genai.label}
               </Flex>
             </ToggleButton>
           )}

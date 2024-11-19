@@ -60,9 +60,9 @@
         "title": "Writing about LLM's and tech...",
         "description": "Read what Rutam has been up to recently."
     },
-    "work": {
-        "label": "Work",
-        "title": "My projects",
+    "genai": {
+        "label": "Gen AI",
+        "title": "My Gen AI projects",
         "description": "LLM and dev projects by Rutam."
     },
     "fullstack": {

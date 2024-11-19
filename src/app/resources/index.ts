@@ -8,5 +8,5 @@ export {
   mailchimp,
   baseURL,
 } from "@/app/resources/config";
-// export { person, social, newsletter, home, about, blog, work, fullstack } from '@/app/resources/content-en'
+// export { person, social, newsletter, home, about, blog, genai, fullstack } from '@/app/resources/content-en'
 export { renderContent } from "@/app/resources/renderContent";
