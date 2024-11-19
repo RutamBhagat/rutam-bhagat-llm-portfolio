@@ -29,7 +29,7 @@ BrochureCraft is an AI-powered tool designed to instantly generate professional 
 
 ## Demo Video
 
-[Watch the Walkthrough](https://github.com/user-attachments/assets/b2c0afad-f7ec-4f92-b6bb-253a9d911152)
+https://github.com/user-attachments/assets/b2c0afad-f7ec-4f92-b6bb-253a9d911152
 
 ## Key Features
 
@@ -59,64 +59,55 @@ BrochureCraft is perfect for:
 
 ## Getting Started
 
-Follow these steps to set up and run the BrochureCraft application locally.
-
 ### Prerequisites
 
-- Ensure you have [Node.js](https://nodejs.org/) and [Python](https://www.python.org/) installed on your machine.
-- Install [Bun](https://bun.sh/) for JavaScript package management.
-- Install [Pipx](https://pypa.github.io/pipx/) for Python package management.
+- Node.js 18+
+- Python 3.10+
+- Docker (optional)
+- Git
 
-### Clone the Repositories
+### Frontend Setup
 
-1. **Clone the Frontend Repository**
-   ```bash
+```bash
+   # Clone repository
    git clone https://github.com/RutamBhagat/website_summarizer_frontend
    cd website_summarizer_frontend
-   ```
 
-2. **Environment Setup for Frontend**
-   - Create a `.env` file in the `website_summarizer_frontend` directory.
-   - Add your OpenAI API key to the `.env` file.
+   # Install dependencies
+   npm install
 
-3. **Install Frontend Dependencies**
-   ```bash
-   # Install Bun globally
-   npm install -g bun
+   # Start development server
+   npm run dev
+```
 
-   # Install frontend dependencies
-   bun install
-   ```
+### Backend Setup
 
-4. **Start the Frontend Development Server**
-   ```bash
-   bun run dev
-   ```
-
-5. **Clone the Backend Repository**
-   ```bash
-   cd ..  # Go back to the previous directory
+```bash
+   # Backend
    git clone https://github.com/RutamBhagat/website_summarizer
    cd website_summarizer
-   ```
 
-6. **Environment Setup for Backend**
-   - Create a `.env` file in the `website_summarizer` directory.
-   - Add your OpenAI API key to the `.env` file.
-
-7. **Install Backend Dependencies**
-   ```bash
-   # Install PDM for Python dependency management
    pipx install pdm
 
-   # Install backend dependencies
    pdm install
-   ```
 
-8. **Start the Backend Server**
-   ```bash
-   pdm run uvicorn app.main:app --reload
-   ```
+   source .venv/bin/activate
+
+   pdm run uvicorn app.server:app --reload
+```
+
+#### If you want to setup using Docker
+
+```bash
+   # Remove the old container if present
+   docker rm website-summarizer-container
+
+   # Build the new image with no cache
+   docker build --no-cache -t website-summarizer-app .
+
+   # Run the container
+   docker run -d -p 8000:8000 --name website-summarizer-container website-summarizer-app
+```
 
 ## Outcome
 
